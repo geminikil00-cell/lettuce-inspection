@@ -1,9 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../hooks/useSupabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Clock, User, Sprout, Plus } from 'lucide-react';
-import { cn } from '../lib/utils';
 
 interface Props {
   open: boolean;

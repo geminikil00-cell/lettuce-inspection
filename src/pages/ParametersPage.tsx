@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
 import type { Parameter } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings2, Plus, Edit2, Trash2, Sprout, User, Check, X } from 'lucide-react';
+import { Settings2, Plus, Edit2, Trash2, Sprout, User, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const PRESET_COLORS = [

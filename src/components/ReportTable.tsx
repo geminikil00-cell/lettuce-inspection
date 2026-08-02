@@ -3,7 +3,7 @@ import { toJpeg } from 'html-to-image';
 import * as XLSX from 'xlsx';
 import type { Inspection, Parameter } from '../types';
 import { motion } from 'framer-motion';
-import { X, Download, FileSpreadsheet, Image as ImageIcon } from 'lucide-react';
+import { X, FileSpreadsheet, Image as ImageIcon } from 'lucide-react';
 
 interface Props {
   inspection: Inspection;
