@@ -68,7 +68,6 @@ i18n
     },
     lng: "en",
     fallbackLng: "en",
-    initImmediate: false,
     interpolation: {
       escapeValue: false
     }
