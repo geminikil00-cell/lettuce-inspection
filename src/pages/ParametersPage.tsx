@@ -1,34 +1,22 @@
 import { useState } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
 import type { Parameter } from '../types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Settings2, Plus, Edit2, Trash2, Sprout, User, Check, X } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 const PRESET_COLORS = [
-  '#22c55e',
-  '#ef4444',
-  '#eab308',
-  '#3b82f6',
-  '#7c3aed',
-  '#ec4899',
-  '#f97316',
-  '#06b6d4',
-  '#84cc16',
-  '#6b7280',
+  '#22c55e', '#10b981', '#3b82f6', '#6366f1', '#8b5cf6', 
+  '#d946ef', '#f43f5e', '#ef4444', '#f97316', '#eab308', 
+  '#84cc16', '#6b7280', '#1f2937'
 ];
 
 export function ParametersPage() {
   const {
-    parameters,
-    farmNames,
-    inspectorNames,
-    loading,
-    error,
-    addParameter,
-    updateParameter,
-    deleteParameter,
-    addFarmName,
-    deleteFarmName,
-    addInspectorName,
-    deleteInspectorName,
+    parameters, farmNames, inspectorNames, loading, error,
+    addParameter, updateParameter, deleteParameter,
+    addFarmName, deleteFarmName,
+    addInspectorName, deleteInspectorName,
   } = useSupabase();
 
   const [editingParam, setEditingParam] = useState<Parameter | null>(null);
@@ -42,15 +30,17 @@ export function ParametersPage() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-20 text-center text-gray-400">
-        Loading...
+      <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-40 bg-gray-200 animate-pulse rounded-3xl w-full"></div>
+        ))}
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-20 text-center text-red-500">
+      <div className="max-w-3xl mx-auto px-4 py-20 text-center text-red-500 font-medium bg-red-50 rounded-2xl p-6">
         {error}
       </div>
     );
@@ -81,6 +71,7 @@ export function ParametersPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if(!window.confirm("Delete this parameter?")) return;
     try {
       await deleteParameter(id);
       setActionError('');
@@ -90,133 +81,169 @@ export function ParametersPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-8">
-      {actionError && (
-        <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">
-          {actionError}
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="max-w-3xl mx-auto px-4 py-6 sm:py-8 space-y-8"
+    >
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-12 h-12 bg-gray-900 rounded-2xl flex items-center justify-center">
+          <Settings2 className="w-6 h-6 text-white" />
         </div>
-      )}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
+          <p className="text-sm text-gray-500 font-medium">Manage app configuration</p>
+        </div>
+      </div>
 
-      <section>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
+      <AnimatePresence>
+        {actionError && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="p-4 bg-red-50 text-red-600 text-sm font-medium rounded-2xl"
+          >
+            {actionError}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* PARAMETERS SECTION */}
+      <section className="bg-white p-5 sm:p-6 rounded-[32px] border border-gray-100 shadow-sm">
+        <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
           Inspection Parameters
         </h2>
-        <p className="text-sm text-gray-500 mb-4">
-          These become the large buttons during inspection. Each tap counts one
-          lettuce head with that condition.
+        <p className="text-sm text-gray-500 font-medium mb-6">
+          Define the large buttons used during counting.
         </p>
 
-        <div className="space-y-2 mb-4">
-          {parameters.map((param) =>
-            editingParam?.id === param.id ? (
-              <div
-                key={param.id}
-                className="flex items-center gap-3 bg-gray-50 rounded-lg p-3"
-              >
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  autoFocus
-                />
-                <div className="flex gap-1">
-                  {PRESET_COLORS.map((color) => (
+        <div className="space-y-3 mb-6">
+          <AnimatePresence>
+            {parameters.map((param) =>
+              editingParam?.id === param.id ? (
+                <motion.div
+                  key={`edit-${param.id}`}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-gray-50 rounded-2xl p-4 border border-gray-200"
+                >
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 font-bold focus:border-green-500 focus:outline-none mb-4 transition-colors"
+                  />
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {PRESET_COLORS.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setEditColor(color)}
+                        className={cn(
+                          "w-8 h-8 rounded-full border-2 transition-all transform",
+                          editColor === color ? 'border-gray-900 scale-110 shadow-md' : 'border-transparent hover:scale-110'
+                        )}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
                     <button
-                      key={color}
-                      type="button"
-                      onClick={() => setEditColor(color)}
-                      className={`w-7 h-7 rounded-full border-2 transition-all ${
-                        editColor === color
-                          ? 'border-gray-800 scale-110'
-                          : 'border-transparent'
-                      }`}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </div>
-                <button
-                  onClick={handleSaveEdit}
-                  className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+                      onClick={handleSaveEdit}
+                      className="flex-1 py-2.5 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition-colors"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={() => setEditingParam(null)}
+                      className="px-4 py-2.5 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={param.id}
+                  layout
+                  className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 hover:border-gray-200 hover:shadow-sm transition-all group"
                 >
-                  Save
-                </button>
-                <button
-                  onClick={() => setEditingParam(null)}
-                  className="px-3 py-2 text-sm bg-gray-200 rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <div
-                key={param.id}
-                className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3"
-              >
-                <span
-                  className="w-6 h-6 rounded-full shrink-0"
-                  style={{ backgroundColor: param.color }}
-                />
-                <span className="flex-1 font-medium text-gray-800">
-                  {param.name}
-                </span>
-                <button
-                  onClick={() => {
-                    setEditingParam(param);
-                    setEditName(param.name);
-                    setEditColor(param.color);
-                  }}
-                  className="px-3 py-1 text-sm text-green-700 hover:bg-green-50 rounded"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(param.id)}
-                  className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
-                >
-                  Delete
-                </button>
-              </div>
-            ),
-          )}
+                  <span
+                    className="w-10 h-10 rounded-xl shadow-inner shrink-0"
+                    style={{ backgroundColor: param.color }}
+                  />
+                  <span className="flex-1 font-bold text-gray-900 text-lg">
+                    {param.name}
+                  </span>
+                  <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => {
+                        setEditingParam(param);
+                        setEditName(param.name);
+                        setEditColor(param.color);
+                      }}
+                      className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(param.id)}
+                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </motion.div>
+              )
+            )}
+          </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
-          <input
-            type="text"
-            value={newParamName}
-            onChange={(e) => setNewParamName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddParam()}
-            placeholder="New parameter name"
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-          />
-          <div className="flex gap-1">
-            {PRESET_COLORS.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onClick={() => setNewParamColor(color)}
-                className={`w-7 h-7 rounded-full border-2 transition-all ${
-                  newParamColor === color
-                    ? 'border-gray-800 scale-110'
-                    : 'border-transparent'
-                }`}
-                style={{ backgroundColor: color }}
-              />
-            ))}
+        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+          <h3 className="text-sm font-bold text-gray-700 mb-3">Add New Parameter</h3>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              value={newParamName}
+              onChange={(e) => setNewParamName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddParam()}
+              placeholder="E.g. Overripe"
+              className="flex-1 bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-bold focus:border-green-500 focus:outline-none transition-colors"
+            />
+            <div className="flex gap-2 p-2 bg-white rounded-xl border border-gray-200 overflow-x-auto no-scrollbar">
+              {PRESET_COLORS.map((color) => (
+                <button
+                  key={`new-${color}`}
+                  type="button"
+                  onClick={() => setNewParamColor(color)}
+                  className={cn(
+                    "w-8 h-8 shrink-0 rounded-full border-2 transition-all transform",
+                    newParamColor === color ? 'border-gray-900 scale-110 shadow-sm' : 'border-transparent hover:scale-110'
+                  )}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+            <button
+              onClick={handleAddParam}
+              disabled={!newParamName.trim()}
+              className="px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Add
+            </button>
           </div>
-          <button
-            onClick={handleAddParam}
-            className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            Add
-          </button>
         </div>
       </section>
 
-      <section>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Farm Names</h2>
-        <div className="flex items-center gap-3 mb-3">
+      {/* FARMS SECTION */}
+      <section className="bg-white p-5 sm:p-6 rounded-[32px] border border-gray-100 shadow-sm">
+        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Sprout className="w-5 h-5 text-green-600" />
+          Farms
+        </h2>
+        <div className="flex items-center gap-3 mb-6">
           <input
             type="text"
             value={newFarm}
@@ -227,8 +254,8 @@ export function ParametersPage() {
                 setNewFarm('');
               }
             }}
-            placeholder="Add farm name"
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            placeholder="Add a farm name..."
+            className="flex-1 bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-gray-900 font-medium focus:bg-white focus:border-green-500 focus:outline-none transition-colors"
           />
           <button
             onClick={async () => {
@@ -237,37 +264,46 @@ export function ParametersPage() {
                 setNewFarm('');
               }
             }}
-            className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+            disabled={!newFarm.trim()}
+            className="px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
           >
             Add
           </button>
         </div>
         <div className="flex flex-wrap gap-2">
           {farmNames.length === 0 && (
-            <span className="text-sm text-gray-400">No farm names added.</span>
+            <span className="text-sm font-medium text-gray-400">No farms added yet.</span>
           )}
-          {farmNames.map((name) => (
-            <span
-              key={name}
-              className="inline-flex items-center gap-1 bg-gray-100 rounded-full px-3 py-1 text-sm"
-            >
-              {name}
-              <button
-                onClick={() => deleteFarmName(name)}
-                className="text-red-400 hover:text-red-600 ml-1"
+          <AnimatePresence>
+            {farmNames.map((name) => (
+              <motion.span
+                key={name}
+                layout
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="inline-flex items-center gap-2 bg-green-50 text-green-800 font-bold rounded-xl px-4 py-2 text-sm border border-green-100"
               >
-                &times;
-              </button>
-            </span>
-          ))}
+                {name}
+                <button
+                  onClick={() => deleteFarmName(name)}
+                  className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center text-green-600 hover:bg-green-200 hover:text-green-800 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </motion.span>
+            ))}
+          </AnimatePresence>
         </div>
       </section>
 
-      <section>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          Inspector Names
+      {/* INSPECTORS SECTION */}
+      <section className="bg-white p-5 sm:p-6 rounded-[32px] border border-gray-100 shadow-sm">
+        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <User className="w-5 h-5 text-blue-600" />
+          Inspectors
         </h2>
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3 mb-6">
           <input
             type="text"
             value={newInspector}
@@ -278,8 +314,8 @@ export function ParametersPage() {
                 setNewInspector('');
               }
             }}
-            placeholder="Add inspector name"
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            placeholder="Add an inspector name..."
+            className="flex-1 bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-gray-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-none transition-colors"
           />
           <button
             onClick={async () => {
@@ -288,33 +324,38 @@ export function ParametersPage() {
                 setNewInspector('');
               }
             }}
-            className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+            disabled={!newInspector.trim()}
+            className="px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
           >
             Add
           </button>
         </div>
         <div className="flex flex-wrap gap-2">
           {inspectorNames.length === 0 && (
-            <span className="text-sm text-gray-400">
-              No inspector names added.
-            </span>
+            <span className="text-sm font-medium text-gray-400">No inspectors added yet.</span>
           )}
-          {inspectorNames.map((name) => (
-            <span
-              key={name}
-              className="inline-flex items-center gap-1 bg-gray-100 rounded-full px-3 py-1 text-sm"
-            >
-              {name}
-              <button
-                onClick={() => deleteInspectorName(name)}
-                className="text-red-400 hover:text-red-600 ml-1"
+          <AnimatePresence>
+            {inspectorNames.map((name) => (
+              <motion.span
+                key={name}
+                layout
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="inline-flex items-center gap-2 bg-blue-50 text-blue-800 font-bold rounded-xl px-4 py-2 text-sm border border-blue-100"
               >
-                &times;
-              </button>
-            </span>
-          ))}
+                {name}
+                <button
+                  onClick={() => deleteInspectorName(name)}
+                  className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 hover:bg-blue-200 hover:text-blue-800 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </motion.span>
+            ))}
+          </AnimatePresence>
         </div>
       </section>
-    </div>
+    </motion.div>
   );
 }

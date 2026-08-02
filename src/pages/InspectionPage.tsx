@@ -1,6 +1,16 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSupabase } from '../hooks/useSupabase';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, ChevronLeft, Undo2, X } from 'lucide-react';
+
+// Haptic feedback utility
+const triggerHaptic = () => {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    // A light tap
+    navigator.vibrate(40);
+  }
+};
 
 export function InspectionPage() {
   const { id } = useParams<{ id: string }>();
@@ -10,134 +20,183 @@ export function InspectionPage() {
 
   const inspection = inspections.find((i) => i.id === id);
 
+  // Auto-save debounce logic
+  const [localCounts, setLocalCounts] = useState<Record<string, number>>(
+    inspection?.counts || {}
+  );
+  
+  useEffect(() => {
+    if (inspection) {
+      setLocalCounts(inspection.counts);
+    }
+  }, [inspection?.id]); // Only reset when ID changes
+
+  // Save to supabase when localCounts change (debounced)
+  useEffect(() => {
+    if (!inspection) return;
+    const timeoutId = setTimeout(() => {
+      // Don't save if nothing changed
+      if (JSON.stringify(localCounts) !== JSON.stringify(inspection.counts)) {
+         updateCounts(inspection.id, localCounts);
+      }
+    }, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [localCounts, inspection, updateCounts]);
+
+
   if (!inspection) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <p className="text-gray-400">Inspection not found.</p>
+      <div className="max-w-md mx-auto px-4 py-20 text-center">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <X className="w-8 h-8 text-gray-400" />
+        </div>
+        <p className="text-gray-900 font-bold text-xl mb-2">Inspection not found</p>
+        <p className="text-gray-500 text-sm mb-6">This inspection may have been deleted or does not exist.</p>
         <Link
           to="/"
-          className="text-green-600 hover:underline mt-2 inline-block"
+          className="inline-flex items-center justify-center px-6 py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-colors"
         >
-          Back to Home
+          Return Home
         </Link>
       </div>
     );
   }
 
-  const total = Object.values(inspection.counts).reduce((a, b) => a + b, 0);
+  const total = Object.values(localCounts).reduce((a, b) => a + b, 0);
 
   const handleTap = (paramId: string) => {
-    const updatedCounts = {
-      ...inspection.counts,
-      [paramId]: (inspection.counts[paramId] || 0) + 1,
-    };
-    updateCounts(inspection.id, updatedCounts);
+    triggerHaptic();
+    setLocalCounts(prev => ({
+      ...prev,
+      [paramId]: (prev[paramId] || 0) + 1
+    }));
   };
 
-  const handleUndo = (paramId: string) => {
-    if ((inspection.counts[paramId] || 0) <= 0) return;
-    const updatedCounts = {
-      ...inspection.counts,
-      [paramId]: inspection.counts[paramId] - 1,
-    };
-    updateCounts(inspection.id, updatedCounts);
+  const handleUndo = (paramId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent triggering the main button if it overlays
+    if ((localCounts[paramId] || 0) <= 0) return;
+    
+    // Distinct haptic for undo
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([20, 30, 20]);
+    }
+    
+    setLocalCounts(prev => ({
+      ...prev,
+      [paramId]: prev[paramId] - 1
+    }));
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+    // Force immediate save before leaving
+    await updateCounts(inspection.id, localCounts);
     navigate('/');
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
-        <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-          <span>
-            <span className="text-gray-500">Farm:</span>{' '}
-            <span className="font-medium">{inspection.farmName}</span>
-          </span>
-          <span>
-            <span className="text-gray-500">Date:</span>{' '}
-            <span className="font-medium">{inspection.receivingDate}</span>
-          </span>
-          <span>
-            <span className="text-gray-500">Time:</span>{' '}
-            <span className="font-medium">{inspection.receivingTime}</span>
-          </span>
-          <span>
-            <span className="text-gray-500">Inspector:</span>{' '}
-            <span className="font-medium">{inspection.inspectorName}</span>
-          </span>
+    <div className="min-h-screen bg-gray-900 pb-safe relative">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-30 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <button 
+            onClick={() => navigate('/')}
+            className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-300 hover:bg-gray-700 transition-colors"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          
+          <div className="flex flex-col items-center">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{inspection.farmName}</span>
+            <span className="text-2xl font-black text-white">{total} <span className="text-sm font-medium text-gray-400">Heads</span></span>
+          </div>
+
+          <button
+            onClick={() => setShowConfirmFinish(true)}
+            className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white hover:bg-green-400 transition-colors shadow-lg shadow-green-500/20"
+          >
+            <Check className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-2xl font-bold text-gray-900">
-          Total: {total} heads
-        </div>
-        <button
-          onClick={() => setShowConfirmFinish(true)}
-          className="px-6 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 shadow-sm"
-        >
-          Finish Inspection
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        {parameters.map((param) => {
-          const count = inspection.counts[param.id] || 0;
-          return (
-            <div key={param.id} className="flex flex-col">
-              <button
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {parameters.map((param) => {
+            const count = localCounts[param.id] || 0;
+            return (
+              <motion.button
+                key={param.id}
+                whileTap={{ scale: 0.96 }}
                 onClick={() => handleTap(param.id)}
-                className="w-full py-8 rounded-2xl text-white text-xl font-bold shadow-lg active:scale-95 transition-transform select-none"
+                className="relative w-full aspect-[4/3] sm:aspect-square rounded-[32px] text-white flex flex-col items-center justify-center shadow-2xl overflow-hidden group select-none touch-manipulation"
                 style={{ backgroundColor: param.color }}
               >
-                {param.name}
-              </button>
-              <div className="flex items-center justify-center gap-4 mt-2">
-                <button
-                  onClick={() => handleUndo(param.id)}
-                  disabled={count === 0}
-                  className="px-3 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  − Undo
-                </button>
-                <span className="text-lg font-semibold text-gray-800 min-w-[3ch] text-center">
-                  {count}
+                {/* Subtle gradient overlay for depth */}
+                <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-black/20" />
+                
+                <span className="relative z-10 text-2xl sm:text-3xl font-black tracking-tight mb-2 drop-shadow-md">
+                  {param.name}
                 </span>
-              </div>
-            </div>
-          );
-        })}
+                
+                <div className="relative z-10 bg-black/20 backdrop-blur-md px-6 py-2 rounded-full font-bold text-4xl">
+                  {count}
+                </div>
+
+                {/* Undo Button */}
+                <div 
+                  onClick={(e) => handleUndo(param.id, e)}
+                  className={`absolute top-6 right-6 p-3 rounded-full bg-black/20 backdrop-blur-md transition-opacity ${count > 0 ? 'opacity-100 hover:bg-black/40' : 'opacity-0 pointer-events-none'}`}
+                >
+                  <Undo2 className="w-5 h-5" />
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
       </div>
 
-      {showConfirmFinish && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">
-              Finish Inspection?
-            </h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Total heads inspected: <strong>{total}</strong>. This will save
-              the results and return to the home page.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowConfirmFinish(false)}
-                className="flex-1 px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-              >
-                Continue
-              </button>
-              <button
-                onClick={handleFinish}
-                className="flex-1 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                Finish & Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirmFinish && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 pb-safe"
+          >
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white w-full max-w-sm rounded-[32px] p-6 shadow-2xl"
+            >
+              <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 sm:hidden" />
+              <h3 className="text-2xl font-black text-gray-900 mb-2">
+                Finish Inspection?
+              </h3>
+              <p className="text-gray-500 mb-8 font-medium">
+                You've inspected <strong className="text-gray-900">{total} heads</strong> in total. This will save the results and return you to the home screen.
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleFinish}
+                  className="w-full py-4 bg-green-600 text-white text-lg font-bold rounded-2xl hover:bg-green-700 transition-colors"
+                >
+                  Confirm & Save
+                </button>
+                <button
+                  onClick={() => setShowConfirmFinish(false)}
+                  className="w-full py-4 bg-gray-100 text-gray-700 text-lg font-bold rounded-2xl hover:bg-gray-200 transition-colors"
+                >
+                  Resume Counting
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
