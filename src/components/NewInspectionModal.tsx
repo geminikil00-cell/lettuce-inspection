@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../hooks/useSupabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Clock, User, Sprout, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   open: boolean;
@@ -12,6 +13,7 @@ interface Props {
 export function NewInspectionModal({ open, onClose }: Props) {
   const navigate = useNavigate();
   const { parameters, farmNames, inspectorNames, addInspection, addFarmName, addInspectorName } = useSupabase();
+  const { t } = useTranslation();
 
   const [farmName, setFarmName] = useState('');
   const [receivingDate, setReceivingDate] = useState(
@@ -92,7 +94,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
           >
             {/* Header */}
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-bold text-gray-900 tracking-tight">New Inspection</h2>
+              <h2 className="text-xl font-bold text-gray-900 tracking-tight">{t('New Inspection')}</h2>
               <button 
                 onClick={onClose}
                 className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
@@ -113,7 +115,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                     <Sprout className="w-4 h-4 text-green-600" />
-                    Farm Name
+                    {t('Farm Name')}
                   </label>
                   {!showNewFarm ? (
                     <div className="flex gap-2">
@@ -124,11 +126,11 @@ export function NewInspectionModal({ open, onClose }: Props) {
                           className="appearance-none w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all"
                           required
                         >
-                          <option value="" disabled>Select a farm...</option>
+                          <option value="" disabled>{t('Select a farm...')}</option>
                           {farmNames.map((name) => (
                             <option key={name} value={name}>{name}</option>
                           ))}
-                          <option value="__new__">✨ Add new farm</option>
+                          <option value="__new__">{t('✨ Add new farm')}</option>
                         </select>
                       </div>
                       <button
@@ -145,7 +147,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
                         type="text"
                         value={newFarm}
                         onChange={(e) => setNewFarm(e.target.value)}
-                        placeholder="Enter farm name..."
+                        placeholder={t('Enter farm name...')}
                         className="flex-1 border-2 border-green-500 bg-white rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:ring-4 focus:ring-green-500/10 transition-all"
                         autoFocus
                       />
@@ -160,7 +162,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
                         }}
                         className="px-4 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors"
                       >
-                        Add
+                        {t('Add')}
                       </button>
                       <button
                         type="button"
@@ -178,7 +180,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
                   <div className="flex-1">
                     <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                       <Calendar className="w-4 h-4 text-green-600" />
-                      Date
+                      {t('Date')}
                     </label>
                     <input
                       type="date"
@@ -191,7 +193,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
                   <div className="flex-1">
                     <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                       <Clock className="w-4 h-4 text-green-600" />
-                      Time
+                      {t('Time')}
                     </label>
                     <input
                       type="time"
@@ -207,7 +209,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                     <User className="w-4 h-4 text-green-600" />
-                    Inspector
+                    {t('Inspector')}
                   </label>
                   {!showNewInspector ? (
                     <div className="flex gap-2">
@@ -217,11 +219,11 @@ export function NewInspectionModal({ open, onClose }: Props) {
                         className="appearance-none flex-1 border-2 border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all"
                         required
                       >
-                        <option value="" disabled>Select inspector...</option>
+                        <option value="" disabled>{t('Select inspector...')}</option>
                         {inspectorNames.map((name) => (
                           <option key={name} value={name}>{name}</option>
                         ))}
-                        <option value="__new__">✨ Add new inspector</option>
+                        <option value="__new__">{t('✨ Add new inspector')}</option>
                       </select>
                       <button
                         type="button"
@@ -237,7 +239,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
                         type="text"
                         value={newInspector}
                         onChange={(e) => setNewInspector(e.target.value)}
-                        placeholder="Enter name..."
+                        placeholder={t('Enter name...')}
                         className="flex-1 border-2 border-green-500 bg-white rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:ring-4 focus:ring-green-500/10 transition-all"
                         autoFocus
                       />
@@ -252,7 +254,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
                         }}
                         className="px-4 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors"
                       >
-                        Add
+                        {t('Add')}
                       </button>
                       <button
                         type="button"
@@ -271,7 +273,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
                     disabled={submitting}
                     className="w-full py-4 text-white font-bold text-lg bg-green-600 rounded-2xl hover:bg-green-700 active:scale-[0.98] transition-all disabled:opacity-50 shadow-lg shadow-green-600/30"
                   >
-                    {submitting ? 'Starting...' : 'Start Inspection'}
+                    {submitting ? t('Starting...') : t('Start Inspection')}
                   </button>
                 </div>
               </form>

@@ -4,6 +4,7 @@ import type { Parameter } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings2, Plus, Edit2, Trash2, Sprout, User, X } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 const PRESET_COLORS = [
   '#22c55e', '#10b981', '#3b82f6', '#6366f1', '#8b5cf6', 
@@ -18,6 +19,7 @@ export function ParametersPage() {
     addFarmName, deleteFarmName,
     addInspectorName, deleteInspectorName,
   } = useSupabase();
+  const { t } = useTranslation();
 
   const [editingParam, setEditingParam] = useState<Parameter | null>(null);
   const [editName, setEditName] = useState('');
@@ -91,8 +93,8 @@ export function ParametersPage() {
           <Settings2 className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
-          <p className="text-sm text-gray-500 font-medium">Manage app configuration</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('Settings')}</h1>
+          <p className="text-sm text-gray-500 font-medium">{t('Manage app configuration')}</p>
         </div>
       </div>
 
@@ -112,10 +114,10 @@ export function ParametersPage() {
       {/* PARAMETERS SECTION */}
       <section className="bg-white p-5 sm:p-6 rounded-[32px] border border-gray-100 shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
-          Inspection Parameters
+          {t('Inspection Parameters')}
         </h2>
         <p className="text-sm text-gray-500 font-medium mb-6">
-          Define the large buttons used during counting.
+          {t('Define the large buttons used during counting.')}
         </p>
 
         <div className="space-y-3 mb-6">
@@ -153,13 +155,13 @@ export function ParametersPage() {
                       onClick={handleSaveEdit}
                       className="flex-1 py-2.5 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition-colors"
                     >
-                      Save Changes
+                      {t('Save Changes')}
                     </button>
                     <button
                       onClick={() => setEditingParam(null)}
                       className="px-4 py-2.5 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition-colors"
                     >
-                      Cancel
+                      {t('Cancel')}
                     </button>
                   </div>
                 </motion.div>
@@ -201,14 +203,14 @@ export function ParametersPage() {
         </div>
 
         <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-          <h3 className="text-sm font-bold text-gray-700 mb-3">Add New Parameter</h3>
+          <h3 className="text-sm font-bold text-gray-700 mb-3">{t('Add New Parameter')}</h3>
           <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
               value={newParamName}
               onChange={(e) => setNewParamName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddParam()}
-              placeholder="E.g. Overripe"
+              placeholder={t('E.g. Overripe')}
               className="flex-1 bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-bold focus:border-green-500 focus:outline-none transition-colors"
             />
             <div className="flex gap-2 p-2 bg-white rounded-xl border border-gray-200 overflow-x-auto no-scrollbar">
@@ -231,7 +233,7 @@ export function ParametersPage() {
               className="px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" />
-              Add
+              {t('Add')}
             </button>
           </div>
         </div>
@@ -241,7 +243,7 @@ export function ParametersPage() {
       <section className="bg-white p-5 sm:p-6 rounded-[32px] border border-gray-100 shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
           <Sprout className="w-5 h-5 text-green-600" />
-          Farms
+          {t('Farms')}
         </h2>
         <div className="flex items-center gap-3 mb-6">
           <input
@@ -254,7 +256,7 @@ export function ParametersPage() {
                 setNewFarm('');
               }
             }}
-            placeholder="Add a farm name..."
+            placeholder={t('Add a farm name...')}
             className="flex-1 bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-gray-900 font-medium focus:bg-white focus:border-green-500 focus:outline-none transition-colors"
           />
           <button
@@ -267,12 +269,12 @@ export function ParametersPage() {
             disabled={!newFarm.trim()}
             className="px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
           >
-            Add
+            {t('Add')}
           </button>
         </div>
         <div className="flex flex-wrap gap-2">
           {farmNames.length === 0 && (
-            <span className="text-sm font-medium text-gray-400">No farms added yet.</span>
+            <span className="text-sm font-medium text-gray-400">{t('No farms added yet.')}</span>
           )}
           <AnimatePresence>
             {farmNames.map((name) => (
@@ -301,7 +303,7 @@ export function ParametersPage() {
       <section className="bg-white p-5 sm:p-6 rounded-[32px] border border-gray-100 shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
           <User className="w-5 h-5 text-blue-600" />
-          Inspectors
+          {t('Inspectors')}
         </h2>
         <div className="flex items-center gap-3 mb-6">
           <input
@@ -314,7 +316,7 @@ export function ParametersPage() {
                 setNewInspector('');
               }
             }}
-            placeholder="Add an inspector name..."
+            placeholder={t('Add an inspector name...')}
             className="flex-1 bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-gray-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-none transition-colors"
           />
           <button
@@ -327,12 +329,12 @@ export function ParametersPage() {
             disabled={!newInspector.trim()}
             className="px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
           >
-            Add
+            {t('Add')}
           </button>
         </div>
         <div className="flex flex-wrap gap-2">
           {inspectorNames.length === 0 && (
-            <span className="text-sm font-medium text-gray-400">No inspectors added yet.</span>
+            <span className="text-sm font-medium text-gray-400">{t('No inspectors added yet.')}</span>
           )}
           <AnimatePresence>
             {inspectorNames.map((name) => (

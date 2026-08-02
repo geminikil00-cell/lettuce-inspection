@@ -14,11 +14,14 @@ import { subDays, subMonths, isAfter, parseISO } from 'date-fns';
 import { Calendar, Sprout, TrendingUp, AlertTriangle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 type TimeRange = '7D' | '30D' | '3M' | 'ALL';
 
 export function ChartsPage() {
+export function ChartsPage() {
   const { inspections, parameters, farmNames, loading } = useSupabase();
+  const { t } = useTranslation();
   const [selectedFarm, setSelectedFarm] = useState<string>('ALL');
   const [timeRange, setTimeRange] = useState<TimeRange>('30D');
 
@@ -110,8 +113,8 @@ export function ChartsPage() {
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Trend Analysis</h1>
-          <p className="text-sm text-gray-500">Monitor inspection quality over time.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('Trend Analysis')}</h1>
+          <p className="text-sm text-gray-500">{t('Monitor inspection quality over time.')}</p>
         </div>
 
         {/* Filters */}
@@ -122,7 +125,7 @@ export function ChartsPage() {
               onChange={(e) => setSelectedFarm(e.target.value)}
               className="appearance-none w-full sm:w-auto pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm"
             >
-              <option value="ALL">All Farms</option>
+              <option value="ALL">{t('All Farms')}</option>
               {farmNames.map((farm) => (
                 <option key={farm} value={farm}>
                   {farm}
@@ -156,7 +159,7 @@ export function ChartsPage() {
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center">
           <div className="flex items-center gap-2 text-gray-500 mb-2">
             <Calendar className="w-4 h-4" />
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Inspected</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">{t('Total Inspected')}</span>
           </div>
           <div className="text-3xl font-bold text-gray-900">
             {stats.totalInspected.toLocaleString()}
@@ -165,7 +168,7 @@ export function ChartsPage() {
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center">
           <div className="flex items-center gap-2 text-gray-500 mb-2">
             <AlertTriangle className="w-4 h-4" />
-            <span className="text-xs font-semibold uppercase tracking-wider">Defect Rate</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">{t('Defect Rate')}</span>
           </div>
           <div className="text-3xl font-bold text-gray-900 flex items-baseline gap-1">
             {stats.defectRate}<span className="text-lg font-medium text-gray-500">%</span>
@@ -177,11 +180,11 @@ export function ChartsPage() {
       <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div className="flex items-center gap-2 mb-6 text-gray-800 font-semibold">
           <TrendingUp className="w-5 h-5 text-green-600" />
-          Parameter Distribution Over Time
+          {t('Parameter Distribution Over Time')}
         </div>
         {chartData.length === 0 ? (
           <div className="h-[300px] flex items-center justify-center text-gray-400 text-sm">
-            No data available for this period.
+            {t('No data available for this period.')}
           </div>
         ) : (
           <div className="h-[350px] w-full">
