@@ -66,10 +66,11 @@ i18n
       en,
       ar
     },
-    lng: "en", // default language
+    lng: "en",
     fallbackLng: "en",
+    initImmediate: false,
     interpolation: {
-      escapeValue: false // react already safes from xss
+      escapeValue: false
     }
   });
 
