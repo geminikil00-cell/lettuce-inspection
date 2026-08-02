@@ -1,0 +1,15 @@
+export interface Parameter {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface Inspection {
+  id: string;
+  farmName: string;
+  inspectorName: string;
+  receivingDate: string;
+  receivingTime: string;
+  createdAt: string;
+  counts: Record<string, number>;
+}
