@@ -1,15 +1,23 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BarChart3, Settings } from 'lucide-react';
+import { Home, BarChart3, Settings, Languages } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'framer-motion';
 
+import { useTranslation } from 'react-i18next';
+
 export function Navigation() {
   const location = useLocation();
+  const { t, i18n } = useTranslation();
+
+  const toggleLanguage = () => {
+    i18n.changeLanguage(i18n.language === 'en' ? 'ar' : 'en');
+    document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
+  };
 
   const navItems = [
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/charts', label: 'Charts', icon: BarChart3 },
-    { path: '/parameters', label: 'Parameters', icon: Settings },
+    { path: '/', label: t('Home'), icon: Home },
+    { path: '/charts', label: t('Charts'), icon: BarChart3 },
+    { path: '/parameters', label: t('Parameters'), icon: Settings },
   ];
 
   return (
@@ -18,7 +26,7 @@ export function Navigation() {
       <header className="hidden sm:block sticky top-0 z-40 w-full bg-white/80 backdrop-blur-lg border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-xl font-bold text-green-700 tracking-tight">
-            🥬 <span className="text-gray-900">LettuceInspect</span>
+            🥬 <span className="text-gray-900">{t('LettuceInspect')}</span>
           </Link>
           <nav className="flex items-center gap-1">
             {navItems.map((item) => {
@@ -47,6 +55,15 @@ export function Navigation() {
                 </Link>
               );
             })}
+            <button 
+              onClick={toggleLanguage}
+              className="ml-2 relative px-4 py-2 rounded-full text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            >
+              <span className="flex items-center gap-2 relative z-10">
+                <Languages className="w-4 h-4" />
+                {i18n.language === 'en' ? 'عربي' : 'EN'}
+              </span>
+            </button>
           </nav>
         </div>
       </header>
@@ -80,6 +97,13 @@ export function Navigation() {
               </Link>
             );
           })}
+          <button
+            onClick={toggleLanguage}
+            className="relative flex flex-col items-center justify-center w-full h-full space-y-1 text-gray-500 hover:text-gray-900"
+          >
+            <Languages className="w-6 h-6 transition-transform duration-200" />
+            <span className="text-[10px] font-medium">{i18n.language === 'en' ? 'عربي' : 'EN'}</span>
+          </button>
         </div>
       </nav>
     </>

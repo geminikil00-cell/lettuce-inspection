@@ -5,9 +5,11 @@ import { useSupabase } from '../hooks/useSupabase';
 import type { Inspection } from '../types';
 import { Plus, ChevronRight, Sprout, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 export function HomePage() {
   const { inspections, parameters, loading, error } = useSupabase();
+  const { t } = useTranslation();
   const [showNewModal, setShowNewModal] = useState(false);
   const [selectedInspection, setSelectedInspection] =
     useState<Inspection | null>(null);
@@ -28,7 +30,7 @@ export function HomePage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20">
         <div className="bg-red-50/50 backdrop-blur-md border border-red-100 rounded-2xl p-6 text-center">
-          <p className="text-red-700 font-semibold mb-2">Connection Error</p>
+          <p className="text-red-700 font-semibold mb-2">{t('Connection Error')}</p>
           <p className="text-red-600/80 text-sm">{error}</p>
         </div>
       </div>
@@ -51,8 +53,8 @@ export function HomePage() {
     >
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Recent Inspections</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage and review your field data.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{t('Recent Inspections')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{t('Manage and review your field data.')}</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -61,7 +63,7 @@ export function HomePage() {
           className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-green-600 text-white text-sm font-semibold rounded-full shadow-lg shadow-green-600/20 hover:bg-green-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span className="hidden sm:inline">New Inspection</span>
+          <span className="hidden sm:inline">{t('New Inspection')}</span>
         </motion.button>
       </div>
 
@@ -70,9 +72,9 @@ export function HomePage() {
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Sprout className="w-10 h-10 text-gray-400" />
           </div>
-          <p className="text-lg font-medium text-gray-900">No inspections yet</p>
+          <p className="text-lg font-medium text-gray-900">{t('No inspections yet')}</p>
           <p className="text-sm text-gray-500 mt-1 max-w-xs mx-auto">
-            Ready to get started? Tap the button above to begin your first lettuce inspection.
+            {t('Ready to get started? Tap the button above to begin your first lettuce inspection.')}
           </p>
         </div>
       ) : (
@@ -117,7 +119,7 @@ export function HomePage() {
                         {total}
                       </div>
                       <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
-                        Heads
+                        {t('Heads')}
                       </div>
                     </div>
                   </div>
@@ -144,7 +146,7 @@ export function HomePage() {
                   )}
                   
                   <div className="mt-4 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-sm font-semibold text-green-600">View full report</span>
+                    <span className="text-sm font-semibold text-green-600">{t('View full report')}</span>
                     <ChevronRight className="w-5 h-5 text-green-600" />
                   </div>
                 </motion.button>
