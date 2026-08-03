@@ -84,7 +84,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       ] = await Promise.all([
         supabase.from('parameters').select('*').order('created_at'),
         supabase.from('farm_names').select('*').order('name'),
-        supabase.from('farm_plots').select('*').order('name'),
+        supabase.from('farm_plots').select('*').order('created_at'),
         supabase.from('inspector_names').select('*').order('name'),
         supabase
           .from('inspections')
