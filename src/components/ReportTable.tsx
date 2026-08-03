@@ -99,7 +99,7 @@ export function ReportTable({ inspection, parameters, onClose }: Props) {
                 <h3 className="font-black text-2xl text-gray-900 tracking-tight">{t('Lettuce Report')}</h3>
                 <p className="text-gray-500 font-medium">{t('Ref:')} {inspection.id.slice(0, 8).toUpperCase()}</p>
               </div>
-              <div className="text-right">
+              <div className="text-end">
                 <div className="font-bold text-gray-900">{inspection.receivingDate}</div>
                 <div className="text-gray-500">{inspection.receivingTime}</div>
               </div>
@@ -119,9 +119,9 @@ export function ReportTable({ inspection, parameters, onClose }: Props) {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b-2 border-gray-100">
-                  <th className="pb-3 text-left font-bold text-gray-400 uppercase tracking-wider">{t('Parameter')}</th>
-                  <th className="pb-3 text-right font-bold text-gray-400 uppercase tracking-wider">{t('Count')}</th>
-                  <th className="pb-3 text-right font-bold text-gray-400 uppercase tracking-wider">{t('%')}</th>
+                  <th className="pb-3 text-start font-bold text-gray-400 uppercase tracking-wider">{t('Parameter')}</th>
+                  <th className="pb-3 text-end font-bold text-gray-400 uppercase tracking-wider">{t('Count')}</th>
+                  <th className="pb-3 text-end font-bold text-gray-400 uppercase tracking-wider">{t('%')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -142,8 +142,8 @@ export function ReportTable({ inspection, parameters, onClose }: Props) {
                           {param?.name ?? paramId}
                         </span>
                       </td>
-                      <td className="py-4 text-right font-semibold text-gray-900">{count}</td>
-                      <td className="py-4 text-right font-medium text-gray-500">{pct}%</td>
+                      <td className="py-4 text-end font-semibold text-gray-900">{count}</td>
+                      <td className="py-4 text-end font-medium text-gray-500">{pct}%</td>
                     </tr>
                   );
                 })}
@@ -151,8 +151,8 @@ export function ReportTable({ inspection, parameters, onClose }: Props) {
               <tfoot>
                 <tr className="border-t-2 border-gray-900">
                   <td className="py-4 font-black text-gray-900">{t('TOTAL HEADS')}</td>
-                  <td className="py-4 text-right font-black text-gray-900 text-xl">{total}</td>
-                  <td className="py-4 text-right font-bold text-gray-900">100%</td>
+                  <td className="py-4 text-end font-black text-gray-900 text-xl">{total}</td>
+                  <td className="py-4 text-end font-bold text-gray-900">100%</td>
                 </tr>
               </tfoot>
             </table>
