@@ -19,7 +19,6 @@ import { useTranslation } from 'react-i18next';
 type TimeRange = '7D' | '30D' | '3M' | 'ALL';
 
 export function ChartsPage() {
-export function ChartsPage() {
   const { inspections, parameters, farmNames, loading } = useSupabase();
   const { t } = useTranslation();
   const [selectedFarm, setSelectedFarm] = useState<string>('ALL');

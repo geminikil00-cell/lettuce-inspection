@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { toJpeg } from 'html-to-image';
-import * as XLSX from 'xlsx';
 import type { Inspection, Parameter } from '../types';
 import { motion } from 'framer-motion';
 import { X, FileSpreadsheet, Image as ImageIcon } from 'lucide-react';
@@ -31,7 +30,8 @@ export function ReportTable({ inspection, parameters, onClose }: Props) {
     link.click();
   };
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
+    const XLSX = await import('xlsx');
     const rows: (string | number)[][] = [
       [t('Lettuce Inspection Report')],
       [],
