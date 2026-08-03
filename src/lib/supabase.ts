@@ -33,7 +33,6 @@ export interface DbInspection {
   plot_name?: string;
   inspector_name: string;
   receiving_date: string;
-  receiving_time: string;
   stock_id?: string;
   submitted_at?: string;
   created_at: string;

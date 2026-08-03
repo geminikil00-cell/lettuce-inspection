@@ -63,7 +63,6 @@ function mapInspection(db: DbInspection, counts: Record<string, number>): Inspec
     plotName: db.plot_name,
     inspectorName: db.inspector_name,
     receivingDate: db.receiving_date,
-    receivingTime: db.receiving_time,
     stockId: db.stock_id,
     submittedAt: db.submitted_at,
     createdAt: db.created_at,
@@ -270,7 +269,6 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
           plot_name: inspection.plotName || '',
           inspector_name: inspection.inspectorName,
           receiving_date: inspection.receivingDate,
-          receiving_time: inspection.receivingTime,
           stock_id: stockId,
         })
         .select('*')
@@ -306,7 +304,6 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
           plot_name: metadata.plotName || '',
           inspector_name: metadata.inspectorName,
           receiving_date: metadata.receivingDate,
-          receiving_time: metadata.receivingTime,
         })
         .eq('id', id);
       if (error) throw error;

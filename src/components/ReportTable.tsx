@@ -34,7 +34,6 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
       plotName: '',
       inspectorName: inspection.inspectorName,
       receivingDate: inspection.receivingDate,
-      receivingTime: inspection.receivingTime,
     });
   };
 
@@ -45,7 +44,6 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
       plotName: newPlot,
       inspectorName: inspection.inspectorName,
       receivingDate: inspection.receivingDate,
-      receivingTime: inspection.receivingTime,
     });
   };
 
