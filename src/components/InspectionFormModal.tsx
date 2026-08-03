@@ -10,9 +10,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   initialData?: Inspection;
+  stockPrefill?: { farmName: string; plotName: string; receivingDate: string; stockId: string };
 }
 
-export function InspectionFormModal({ open, onClose, initialData }: Props) {
+export function InspectionFormModal({ open, onClose, initialData, stockPrefill }: Props) {
   const navigate = useNavigate();
   const { parameters, farmNames, farmPlots, inspectorNames, addInspection, updateInspection, addFarmName, addFarmPlot, addInspectorName } = useSupabase();
   const { t } = useTranslation();
@@ -45,6 +46,12 @@ export function InspectionFormModal({ open, onClose, initialData }: Props) {
         setReceivingDate(initialData.receivingDate);
         setReceivingTime(initialData.receivingTime);
         setInspectorName(initialData.inspectorName);
+      } else if (stockPrefill) {
+        setFarmName(stockPrefill.farmName);
+        setPlotName(stockPrefill.plotName);
+        setReceivingDate(stockPrefill.receivingDate);
+        setReceivingTime(new Date().toTimeString().slice(0, 5));
+        setInspectorName('');
       } else {
         setFarmName('');
         setPlotName('');
@@ -57,7 +64,7 @@ export function InspectionFormModal({ open, onClose, initialData }: Props) {
       setShowNewInspector(false);
       setSubmitError('');
     }
-  }, [open, initialData]);
+  }, [open, initialData, stockPrefill]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +112,7 @@ export function InspectionFormModal({ open, onClose, initialData }: Props) {
           inspectorName: finalInspector,
           receivingDate,
           receivingTime,
+          stockId: stockPrefill?.stockId,
           counts: initialCounts,
         });
 
@@ -143,7 +151,7 @@ export function InspectionFormModal({ open, onClose, initialData }: Props) {
             {/* Header */}
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
               <h2 className="text-xl font-bold text-gray-900 tracking-tight">
-                {initialData ? t('Edit Info') : t('New Inspection')}
+                {initialData ? t('Edit Info') : stockPrefill ? t('Inspect Stock') : t('New Inspection')}
               </h2>
               <button 
                 onClick={onClose}

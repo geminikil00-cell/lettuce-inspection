@@ -139,3 +139,11 @@ CREATE POLICY "anon_select_shipitems" ON shipment_items FOR SELECT USING (true);
 CREATE POLICY "anon_insert_shipitems" ON shipment_items FOR INSERT WITH CHECK (true);
 CREATE POLICY "anon_update_shipitems" ON shipment_items FOR UPDATE USING (true);
 CREATE POLICY "anon_delete_shipitems" ON shipment_items FOR DELETE USING (true);
+
+-- ============================================================
+-- Link inspections to stock + defect tracking
+-- ============================================================
+
+ALTER TABLE inspections ADD COLUMN IF NOT EXISTS stock_id UUID REFERENCES stock(id) ON DELETE SET NULL;
+
+ALTER TABLE parameters ADD COLUMN IF NOT EXISTS is_defect BOOLEAN DEFAULT true;

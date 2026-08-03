@@ -103,7 +103,11 @@ const en = {
     "Shipment Detail": "Shipment Detail",
     "Add more entries": "Add more entries",
     "Remove": "Remove",
-    "Farm & Plot": "Farm & Plot"
+    "Farm & Plot": "Farm & Plot",
+    "Not inspected": "Not inspected",
+    "Inspect": "Inspect",
+    "Inspect Stock": "Inspect Stock",
+    "Link Inspection": "Link Inspection"
   }
 };
 
@@ -209,7 +213,11 @@ const ar = {
     "Shipment Detail": "تفاصيل الشحنة",
     "Add more entries": "إضافة المزيد",
     "Remove": "إزالة",
-    "Farm & Plot": "المزرعة والحقل"
+    "Farm & Plot": "المزرعة والحقل",
+    "Not inspected": "غير مفحوص",
+    "Inspect": "فحص",
+    "Inspect Stock": "فحص المخزون",
+    "Link Inspection": "ربط الفحص"
   }
 };
 

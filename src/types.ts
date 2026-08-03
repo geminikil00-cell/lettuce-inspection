@@ -2,6 +2,7 @@ export interface Parameter {
   id: string;
   name: string;
   color: string;
+  isDefect: boolean;
 }
 
 export interface Inspection {
@@ -11,6 +12,7 @@ export interface Inspection {
   inspectorName: string;
   receivingDate: string;
   receivingTime: string;
+  stockId?: string;
   submittedAt?: string;
   createdAt: string;
   counts: Record<string, number>;

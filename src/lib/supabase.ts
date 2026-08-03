@@ -4,6 +4,7 @@ export interface DbParameter {
   id: string;
   name: string;
   color: string;
+  is_defect: boolean;
   created_at: string;
 }
 
@@ -33,6 +34,7 @@ export interface DbInspection {
   inspector_name: string;
   receiving_date: string;
   receiving_time: string;
+  stock_id?: string;
   submitted_at?: string;
   created_at: string;
 }

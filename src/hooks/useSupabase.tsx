@@ -32,7 +32,7 @@ interface AppState {
 interface SupabaseContextType extends AppState {
   refresh: () => Promise<void>;
   addParameter: (name: string, color: string) => Promise<Parameter | null>;
-  updateParameter: (id: string, name: string, color: string) => Promise<void>;
+  updateParameter: (id: string, name: string, color: string, isDefect?: boolean) => Promise<void>;
   deleteParameter: (id: string) => Promise<void>;
   addInspection: (inspection: Omit<Inspection, 'id' | 'createdAt'>) => Promise<Inspection | null>;
   updateInspection: (id: string, metadata: Omit<Inspection, 'id' | 'createdAt' | 'counts'>) => Promise<void>;
@@ -50,6 +50,8 @@ interface SupabaseContextType extends AppState {
   addShipment: (items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => Promise<void>;
   deleteShipment: (id: string) => Promise<void>;
   updateShipmentItems: (shipmentId: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => Promise<void>;
+  linkInspectionToStock: (inspectionId: string, stockId: string) => Promise<void>;
+  unlinkInspection: (inspectionId: string) => Promise<void>;
 }
 
 const SupabaseContext = createContext<SupabaseContextType | null>(null);
@@ -62,6 +64,7 @@ function mapInspection(db: DbInspection, counts: Record<string, number>): Inspec
     inspectorName: db.inspector_name,
     receivingDate: db.receiving_date,
     receivingTime: db.receiving_time,
+    stockId: db.stock_id,
     submittedAt: db.submitted_at,
     createdAt: db.created_at,
     counts,
@@ -123,6 +126,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         id: p.id,
         name: p.name,
         color: p.color,
+        isDefect: p.is_defect !== false,
       }));
 
       const farmNames = (farmsRes.data as DbFarmName[]).map((f) => f.name);
@@ -206,16 +210,18 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         .single();
       if (error) throw error;
       await refresh();
-      return { id: data.id, name: data.name, color: data.color };
+      return { id: data.id, name: data.name, color: data.color, isDefect: data.is_defect !== false };
     },
     [refresh],
   );
 
   const updateParameter = useCallback(
-    async (id: string, name: string, color: string) => {
+    async (id: string, name: string, color: string, isDefect?: boolean) => {
+      const updateData: Record<string, any> = { name, color };
+      if (isDefect !== undefined) updateData.is_defect = isDefect;
       const { error } = await supabase
         .from('parameters')
-        .update({ name, color })
+        .update(updateData)
         .eq('id', id);
       if (error) throw error;
       await refresh();
@@ -237,6 +243,26 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
 
   const addInspection = useCallback(
     async (inspection: Omit<Inspection, 'id' | 'createdAt'>) => {
+      let stockId = inspection.stockId || null;
+
+      if (!stockId) {
+        const { data: matchingStock } = await supabase
+          .from('stock')
+          .select('id')
+          .eq('farm_name', inspection.farmName)
+          .eq('plot_name', inspection.plotName || '')
+          .eq('receiving_date', inspection.receivingDate);
+        if (matchingStock && matchingStock.length === 1) {
+          const { data: linked } = await supabase
+            .from('inspections')
+            .select('id')
+            .eq('stock_id', matchingStock[0].id);
+          if (!linked || linked.length === 0) {
+            stockId = matchingStock[0].id;
+          }
+        }
+      }
+
       const { data, error } = await supabase
         .from('inspections')
         .insert({
@@ -245,6 +271,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
           inspector_name: inspection.inspectorName,
           receiving_date: inspection.receivingDate,
           receiving_time: inspection.receivingTime,
+          stock_id: stockId,
         })
         .select('*')
         .single();
@@ -390,13 +417,30 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
 
   const addStock = useCallback(
     async (entry: { farmName: string; plotName: string; receivingDate: string; pallets: number }) => {
-      const { error } = await supabase.from('stock').insert({
+      const { data, error } = await supabase.from('stock').insert({
         farm_name: entry.farmName,
         plot_name: entry.plotName,
         receiving_date: entry.receivingDate,
         pallets: entry.pallets,
-      });
+      }).select('id').single();
       if (error) throw error;
+
+      if (data) {
+        const { data: matching } = await supabase
+          .from('inspections')
+          .select('id')
+          .eq('farm_name', entry.farmName)
+          .eq('plot_name', entry.plotName)
+          .eq('receiving_date', entry.receivingDate)
+          .is('stock_id', null);
+        if (matching && matching.length === 1) {
+          await supabase
+            .from('inspections')
+            .update({ stock_id: data.id })
+            .eq('id', matching[0].id);
+        }
+      }
+
       await refresh();
     },
     [refresh],
@@ -479,6 +523,30 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const linkInspectionToStock = useCallback(
+    async (inspectionId: string, stockId: string) => {
+      const { error } = await supabase
+        .from('inspections')
+        .update({ stock_id: stockId })
+        .eq('id', inspectionId);
+      if (error) throw error;
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const unlinkInspection = useCallback(
+    async (inspectionId: string) => {
+      const { error } = await supabase
+        .from('inspections')
+        .update({ stock_id: null })
+        .eq('id', inspectionId);
+      if (error) throw error;
+      await refresh();
+    },
+    [refresh],
+  );
+
   return (
     <SupabaseContext.Provider
       value={{
@@ -503,6 +571,8 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         addShipment,
         deleteShipment,
         updateShipmentItems,
+        linkInspectionToStock,
+        unlinkInspection,
       }}
     >
       {children}

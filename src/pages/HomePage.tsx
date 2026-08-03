@@ -177,8 +177,9 @@ export function HomePage() {
                             <Sprout className="w-6 h-6 text-green-600" />
                           </div>
                           <div>
-                            <div className="font-bold text-gray-900 text-lg">
+                            <div className="font-bold text-gray-900 text-lg flex items-center gap-2">
                               {inspection.farmName} {inspection.plotName ? <span className="text-gray-400 text-sm font-medium">({inspection.plotName})</span> : ''}
+                              {inspection.stockId && <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">STK</span>}
                             </div>
                             <div className="flex items-center gap-3 text-sm text-gray-500 font-medium mt-0.5">
                               <span className="flex items-center gap-1">

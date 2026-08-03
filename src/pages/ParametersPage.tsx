@@ -24,6 +24,7 @@ export function ParametersPage() {
   const [editingParam, setEditingParam] = useState<Parameter | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
+  const [editIsDefect, setEditIsDefect] = useState(true);
   const [newParamName, setNewParamName] = useState('');
   const [newParamColor, setNewParamColor] = useState(PRESET_COLORS[0]);
   const [newFarm, setNewFarm] = useState('');
@@ -64,7 +65,7 @@ export function ParametersPage() {
   const handleSaveEdit = async () => {
     if (!editingParam || !editName.trim()) return;
     try {
-      await updateParameter(editingParam.id, editName.trim(), editColor);
+      await updateParameter(editingParam.id, editName.trim(), editColor, editIsDefect);
       setEditingParam(null);
       setActionError('');
     } catch (err) {
@@ -150,6 +151,15 @@ export function ParametersPage() {
                       />
                     ))}
                   </div>
+                  <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editIsDefect}
+                      onChange={(e) => setEditIsDefect(e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-red-500 focus:ring-red-500"
+                    />
+                    <span className="text-sm font-bold text-gray-700">Defect</span>
+                  </label>
                   <div className="flex gap-2">
                     <button
                       onClick={handleSaveEdit}
@@ -175,8 +185,11 @@ export function ParametersPage() {
                     className="w-10 h-10 rounded-xl shadow-inner shrink-0"
                     style={{ backgroundColor: param.color }}
                   />
-                  <span className="flex-1 font-bold text-gray-900 text-lg">
+                  <span className="flex-1 font-bold text-gray-900 text-lg flex items-center gap-2">
                     {param.name}
+                    {param.isDefect && (
+                      <span className="text-[10px] uppercase font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-md">Defect</span>
+                    )}
                   </span>
                   <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <button
@@ -184,6 +197,7 @@ export function ParametersPage() {
                         setEditingParam(param);
                         setEditName(param.name);
                         setEditColor(param.color);
+                        setEditIsDefect(param.isDefect);
                       }}
                       className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                     >
