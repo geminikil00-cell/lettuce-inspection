@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSupabase } from '../hooks/useSupabase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, ChevronLeft, Undo2, X } from 'lucide-react';
+import { Check, ChevronLeft, Minus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 // Haptic feedback utility
@@ -22,18 +22,25 @@ export function InspectionPage() {
 
   const inspection = inspections.find((i) => i.id === id);
 
-  // Auto-save debounce logic
-  const [localCounts, setLocalCounts] = useState<Record<string, number>>(
-    inspection?.counts || {}
-  );
-  
-  useEffect(() => {
-    if (inspection) {
-      setLocalCounts(inspection.counts);
+  // Load from local storage initially if available
+  const [localCounts, setLocalCounts] = useState<Record<string, number>>(() => {
+    const cached = localStorage.getItem(`inspection_${id}`);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
     }
-  }, [inspection?.id]); // Only reset when ID changes
+    return inspection?.counts || {};
+  });
+  
+  // Sync to local storage whenever localCounts change
+  useEffect(() => {
+    if (inspection && Object.keys(localCounts).length > 0) {
+      localStorage.setItem(`inspection_${id}`, JSON.stringify(localCounts));
+    }
+  }, [localCounts, id, inspection]);
 
-  // Save to supabase when localCounts change (debounced)
+  // Auto-save debounce logic to Supabase
   useEffect(() => {
     if (!inspection) return;
     const timeoutId = setTimeout(() => {
@@ -92,6 +99,7 @@ export function InspectionPage() {
   const handleFinish = async () => {
     // Force immediate save before leaving
     await updateCounts(inspection.id, localCounts);
+    localStorage.removeItem(`inspection_${id}`);
     navigate('/');
   };
 
@@ -144,13 +152,14 @@ export function InspectionPage() {
                   {count}
                 </div>
 
-                {/* Undo Button */}
-                <div 
+                {/* Minus Button */}
+                <button 
                   onClick={(e) => handleUndo(param.id, e)}
-                  className={`absolute top-6 right-6 p-3 rounded-full bg-black/20 backdrop-blur-md transition-opacity ${count > 0 ? 'opacity-100 hover:bg-black/40' : 'opacity-0 pointer-events-none'}`}
+                  disabled={count <= 0}
+                  className={`absolute bottom-4 left-4 p-3 rounded-full bg-black/20 backdrop-blur-md transition-opacity ${count > 0 ? 'opacity-100 hover:bg-black/40' : 'opacity-0 pointer-events-none'}`}
                 >
-                  <Undo2 className="w-5 h-5" />
-                </div>
+                  <Minus className="w-6 h-6" />
+                </button>
               </motion.button>
             );
           })}

@@ -2,8 +2,9 @@ import { useRef } from 'react';
 import { toJpeg } from 'html-to-image';
 import type { Inspection, Parameter } from '../types';
 import { motion } from 'framer-motion';
-import { X, FileSpreadsheet, Image as ImageIcon } from 'lucide-react';
+import { X, FileSpreadsheet, Image as ImageIcon, Edit2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 interface Props {
   inspection: Inspection;
@@ -14,6 +15,7 @@ interface Props {
 export function ReportTable({ inspection, parameters, onClose }: Props) {
   const tableRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const paramMap = new Map(parameters.map((p) => [p.id, p]));
   const total = Object.values(inspection.counts).reduce((a, b) => a + b, 0);
@@ -159,21 +161,33 @@ export function ReportTable({ inspection, parameters, onClose }: Props) {
           </div>
 
           {/* Actions */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3">
             <button
-              onClick={exportJpg}
-              className="flex items-center justify-center gap-2 py-3.5 bg-blue-50 text-blue-700 font-bold rounded-2xl hover:bg-blue-100 transition-colors"
+              onClick={() => {
+                onClose();
+                navigate(`/inspect/${inspection.id}`);
+              }}
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 transition-colors"
             >
-              <ImageIcon className="w-5 h-5" />
-              {t('Save JPG')}
+              <Edit2 className="w-5 h-5" />
+              {t('Edit Inspection')}
             </button>
-            <button
-              onClick={exportExcel}
-              className="flex items-center justify-center gap-2 py-3.5 bg-emerald-50 text-emerald-700 font-bold rounded-2xl hover:bg-emerald-100 transition-colors"
-            >
-              <FileSpreadsheet className="w-5 h-5" />
-              {t('Export Excel')}
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={exportJpg}
+                className="flex items-center justify-center gap-2 py-3.5 bg-blue-50 text-blue-700 font-bold rounded-2xl hover:bg-blue-100 transition-colors"
+              >
+                <ImageIcon className="w-5 h-5" />
+                {t('Save JPG')}
+              </button>
+              <button
+                onClick={exportExcel}
+                className="flex items-center justify-center gap-2 py-3.5 bg-emerald-50 text-emerald-700 font-bold rounded-2xl hover:bg-emerald-100 transition-colors"
+              >
+                <FileSpreadsheet className="w-5 h-5" />
+                {t('Export Excel')}
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
