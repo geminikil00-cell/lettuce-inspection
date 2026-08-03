@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NewInspectionModal } from '../components/NewInspectionModal';
+import { InspectionFormModal } from '../components/InspectionFormModal';
 import { ReportTable } from '../components/ReportTable';
 import { useSupabase } from '../hooks/useSupabase';
 import type { Inspection } from '../types';
@@ -12,6 +12,8 @@ export function HomePage() {
   const { t } = useTranslation();
   const [showNewModal, setShowNewModal] = useState(false);
   const [selectedInspection, setSelectedInspection] =
+    useState<Inspection | null>(null);
+  const [editingInspection, setEditingInspection] = 
     useState<Inspection | null>(null);
 
   const paramMap = new Map(parameters.map((p) => [p.id, p]));
@@ -102,7 +104,7 @@ export function HomePage() {
                       </div>
                       <div>
                         <div className="font-bold text-gray-900 text-lg">
-                          {inspection.farmName}
+                          {inspection.farmName} {inspection.plotName ? <span className="text-gray-400 text-sm font-medium">({inspection.plotName})</span> : ''}
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-500 font-medium mt-0.5">
                           <span className="flex items-center gap-1">
@@ -156,9 +158,13 @@ export function HomePage() {
         </div>
       )}
 
-      <NewInspectionModal
-        open={showNewModal}
-        onClose={() => setShowNewModal(false)}
+      <InspectionFormModal
+        open={showNewModal || !!editingInspection}
+        onClose={() => {
+          setShowNewModal(false);
+          setEditingInspection(null);
+        }}
+        initialData={editingInspection || undefined}
       />
 
       <AnimatePresence>
@@ -167,6 +173,10 @@ export function HomePage() {
             inspection={selectedInspection}
             parameters={parameters}
             onClose={() => setSelectedInspection(null)}
+            onEditInfo={(inspection) => {
+              setSelectedInspection(null);
+              setEditingInspection(inspection);
+            }}
           />
         )}
       </AnimatePresence>

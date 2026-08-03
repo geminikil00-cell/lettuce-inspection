@@ -16,6 +16,14 @@ CREATE TABLE farm_names (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE farm_plots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  farm_name TEXT NOT NULL,
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(farm_name, name)
+);
+
 CREATE TABLE inspector_names (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
@@ -25,6 +33,7 @@ CREATE TABLE inspector_names (
 CREATE TABLE inspections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   farm_name TEXT NOT NULL,
+  plot_name TEXT DEFAULT '',
   inspector_name TEXT NOT NULL,
   receiving_date TEXT NOT NULL,
   receiving_time TEXT NOT NULL,
@@ -60,6 +69,11 @@ ALTER TABLE farm_names ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "anon_select_farms" ON farm_names FOR SELECT USING (true);
 CREATE POLICY "anon_insert_farms" ON farm_names FOR INSERT WITH CHECK (true);
 CREATE POLICY "anon_delete_farms" ON farm_names FOR DELETE USING (true);
+
+ALTER TABLE farm_plots ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_select_plots" ON farm_plots FOR SELECT USING (true);
+CREATE POLICY "anon_insert_plots" ON farm_plots FOR INSERT WITH CHECK (true);
+CREATE POLICY "anon_delete_plots" ON farm_plots FOR DELETE USING (true);
 
 ALTER TABLE inspector_names ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "anon_select_inspectors" ON inspector_names FOR SELECT USING (true);

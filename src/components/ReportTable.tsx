@@ -10,9 +10,10 @@ interface Props {
   inspection: Inspection;
   parameters: Parameter[];
   onClose: () => void;
+  onEditInfo?: (inspection: Inspection) => void;
 }
 
-export function ReportTable({ inspection, parameters, onClose }: Props) {
+export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Props) {
   const tableRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export function ReportTable({ inspection, parameters, onClose }: Props) {
     const rows: (string | number)[][] = [
       [t('Lettuce Inspection Report')],
       [],
-      [t('Farm Name'), inspection.farmName],
+      [t('Farm Name'), inspection.farmName + (inspection.plotName ? ` (${inspection.plotName})` : '')],
       [t('Inspector'), inspection.inspectorName],
       [t('Date'), inspection.receivingDate],
       [t('Time'), inspection.receivingTime],
@@ -83,7 +84,9 @@ export function ReportTable({ inspection, parameters, onClose }: Props) {
         <div className="px-6 py-4 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
           <div>
             <h2 className="text-xl font-bold text-gray-900 tracking-tight">{t('Inspection Report')}</h2>
-            <p className="text-sm text-gray-500 font-medium">{inspection.farmName}</p>
+            <p className="text-sm text-gray-500 font-medium">
+              {inspection.farmName} {inspection.plotName && <span className="text-gray-400">({inspection.plotName})</span>}
+            </p>
           </div>
           <button 
             onClick={onClose}
@@ -110,7 +113,9 @@ export function ReportTable({ inspection, parameters, onClose }: Props) {
             <div className="grid grid-cols-2 gap-4 mb-8 bg-gray-50 p-4 rounded-2xl">
               <div>
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t('Farm')}</div>
-                <div className="font-semibold text-gray-900">{inspection.farmName}</div>
+                <div className="font-semibold text-gray-900">
+                  {inspection.farmName} {inspection.plotName && <span className="text-gray-500">({inspection.plotName})</span>}
+                </div>
               </div>
               <div>
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t('Inspector')}</div>
@@ -162,16 +167,27 @@ export function ReportTable({ inspection, parameters, onClose }: Props) {
 
           {/* Actions */}
           <div className="flex flex-col gap-3">
-            <button
-              onClick={() => {
-                onClose();
-                navigate(`/inspect/${inspection.id}`);
-              }}
-              className="w-full flex items-center justify-center gap-2 py-3.5 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 transition-colors"
-            >
-              <Edit2 className="w-5 h-5" />
-              {t('Edit Inspection')}
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              {onEditInfo && (
+                <button
+                  onClick={() => onEditInfo(inspection)}
+                  className="flex items-center justify-center gap-2 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-2xl hover:bg-gray-200 transition-colors"
+                >
+                  <Edit2 className="w-5 h-5" />
+                  {t('Edit Info')}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  onClose();
+                  navigate(`/inspect/${inspection.id}`);
+                }}
+                className={`flex items-center justify-center gap-2 py-3.5 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 transition-colors ${!onEditInfo ? 'col-span-2' : ''}`}
+              >
+                <Edit2 className="w-5 h-5" />
+                {t('Edit Counts')}
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={exportJpg}

@@ -7,6 +7,7 @@ export interface Parameter {
 export interface Inspection {
   id: string;
   farmName: string;
+  plotName?: string;
   inspectorName: string;
   receivingDate: string;
   receivingTime: string;

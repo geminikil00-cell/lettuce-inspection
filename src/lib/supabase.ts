@@ -13,6 +13,13 @@ export interface DbFarmName {
   created_at: string;
 }
 
+export interface DbFarmPlot {
+  id: string;
+  farm_name: string;
+  name: string;
+  created_at: string;
+}
+
 export interface DbInspectorName {
   id: string;
   name: string;
@@ -22,6 +29,7 @@ export interface DbInspectorName {
 export interface DbInspection {
   id: string;
   farm_name: string;
+  plot_name?: string;
   inspector_name: string;
   receiving_date: string;
   receiving_time: string;

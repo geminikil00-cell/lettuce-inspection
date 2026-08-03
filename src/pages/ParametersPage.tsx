@@ -14,9 +14,9 @@ const PRESET_COLORS = [
 
 export function ParametersPage() {
   const {
-    parameters, farmNames, inspectorNames, loading, error,
+    parameters, farmNames, farmPlots, inspectorNames, loading, error,
     addParameter, updateParameter, deleteParameter,
-    addFarmName, deleteFarmName,
+    addFarmName, deleteFarmName, addFarmPlot, deleteFarmPlot,
     addInspectorName, deleteInspectorName,
   } = useSupabase();
   const { t } = useTranslation();
@@ -272,28 +272,55 @@ export function ParametersPage() {
             {t('Add')}
           </button>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-4">
           {farmNames.length === 0 && (
             <span className="text-sm font-medium text-gray-400">{t('No farms added yet.')}</span>
           )}
           <AnimatePresence>
             {farmNames.map((name) => (
-              <motion.span
+              <motion.div
                 key={name}
                 layout
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="inline-flex items-center gap-2 bg-green-50 text-green-800 font-bold rounded-xl px-4 py-2 text-sm border border-green-100"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-green-50/30 border border-green-100 rounded-2xl p-4"
               >
-                {name}
-                <button
-                  onClick={() => deleteFarmName(name)}
-                  className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center text-green-600 hover:bg-green-200 hover:text-green-800 transition-colors"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </motion.span>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-bold text-green-900 text-lg">{name}</span>
+                  <button
+                    onClick={() => deleteFarmName(name)}
+                    className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 hover:bg-red-100 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                {/* Plots */}
+                <div className="pl-3 sm:pl-4 border-l-2 border-green-200">
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {(farmPlots[name] || []).map(plot => (
+                      <span key={plot} className="inline-flex items-center gap-1.5 bg-white text-green-800 font-semibold rounded-lg px-3 py-1.5 text-sm border border-green-200 shadow-sm">
+                        {plot}
+                        <button onClick={() => deleteFarmPlot(name, plot)} className="text-green-400 hover:text-red-500">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder={t('Add plot...')}
+                    className="bg-white border border-green-200 rounded-xl px-4 py-2 text-sm font-medium focus:border-green-500 focus:outline-none w-full sm:w-64 transition-colors shadow-sm"
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                        await addFarmPlot(name, e.currentTarget.value.trim());
+                        e.currentTarget.value = '';
+                      }
+                    }}
+                  />
+                </div>
+              </motion.div>
             ))}
           </AnimatePresence>
         </div>

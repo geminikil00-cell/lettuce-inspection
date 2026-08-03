@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 import type {
   DbParameter,
   DbFarmName,
+  DbFarmPlot,
   DbInspectorName,
   DbInspection,
   DbInspectionCount,
@@ -20,6 +21,7 @@ interface AppState {
   parameters: Parameter[];
   inspections: Inspection[];
   farmNames: string[];
+  farmPlots: Record<string, string[]>;
   inspectorNames: string[];
   loading: boolean;
   error: string | null;
@@ -31,9 +33,12 @@ interface SupabaseContextType extends AppState {
   updateParameter: (id: string, name: string, color: string) => Promise<void>;
   deleteParameter: (id: string) => Promise<void>;
   addInspection: (inspection: Omit<Inspection, 'id' | 'createdAt'>) => Promise<Inspection | null>;
+  updateInspection: (id: string, metadata: Omit<Inspection, 'id' | 'createdAt' | 'counts'>) => Promise<void>;
   updateCounts: (inspectionId: string, counts: Record<string, number>) => Promise<void>;
   addFarmName: (name: string) => Promise<void>;
   deleteFarmName: (name: string) => Promise<void>;
+  addFarmPlot: (farmName: string, plotName: string) => Promise<void>;
+  deleteFarmPlot: (farmName: string, plotName: string) => Promise<void>;
   addInspectorName: (name: string) => Promise<void>;
   deleteInspectorName: (name: string) => Promise<void>;
 }
@@ -44,6 +49,7 @@ function mapInspection(db: DbInspection, counts: Record<string, number>): Inspec
   return {
     id: db.id,
     farmName: db.farm_name,
+    plotName: db.plot_name,
     inspectorName: db.inspector_name,
     receivingDate: db.receiving_date,
     receivingTime: db.receiving_time,
@@ -57,6 +63,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     parameters: [],
     inspections: [],
     farmNames: [],
+    farmPlots: {},
     inspectorNames: [],
     loading: true,
     error: null,
@@ -68,12 +75,14 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       const [
         paramsRes,
         farmsRes,
+        plotsRes,
         inspectorsRes,
         inspectionsRes,
         countsRes,
       ] = await Promise.all([
         supabase.from('parameters').select('*').order('created_at'),
         supabase.from('farm_names').select('*').order('name'),
+        supabase.from('farm_plots').select('*').order('name'),
         supabase.from('inspector_names').select('*').order('name'),
         supabase
           .from('inspections')
@@ -84,6 +93,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
 
       if (paramsRes.error) throw paramsRes.error;
       if (farmsRes.error) throw farmsRes.error;
+      if (plotsRes.error && plotsRes.error.code !== '42P01') throw plotsRes.error; // Ignore if table doesn't exist yet
       if (inspectorsRes.error) throw inspectorsRes.error;
       if (inspectionsRes.error) throw inspectionsRes.error;
       if (countsRes.error) throw countsRes.error;
@@ -95,6 +105,14 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       }));
 
       const farmNames = (farmsRes.data as DbFarmName[]).map((f) => f.name);
+      const farmPlots: Record<string, string[]> = {};
+      if (plotsRes.data) {
+        (plotsRes.data as DbFarmPlot[]).forEach((p) => {
+          if (!farmPlots[p.farm_name]) farmPlots[p.farm_name] = [];
+          farmPlots[p.farm_name].push(p.name);
+        });
+      }
+
       const inspectorNames = (inspectorsRes.data as DbInspectorName[]).map(
         (i) => i.name,
       );
@@ -109,7 +127,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         mapInspection(db, countMap[db.id] ?? {}),
       );
 
-      setState({ parameters: params, inspections, farmNames, inspectorNames, loading: false, error: null });
+      setState({ parameters: params, inspections, farmNames, farmPlots, inspectorNames, loading: false, error: null });
     } catch (err) {
       setState((prev) => ({
         ...prev,
@@ -167,6 +185,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         .from('inspections')
         .insert({
           farm_name: inspection.farmName,
+          plot_name: inspection.plotName || '',
           inspector_name: inspection.inspectorName,
           receiving_date: inspection.receivingDate,
           receiving_time: inspection.receivingTime,
@@ -191,6 +210,24 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
 
       await refresh();
       return mapInspection(db, inspection.counts);
+    },
+    [refresh],
+  );
+
+  const updateInspection = useCallback(
+    async (id: string, metadata: Omit<Inspection, 'id' | 'createdAt' | 'counts'>) => {
+      const { error } = await supabase
+        .from('inspections')
+        .update({
+          farm_name: metadata.farmName,
+          plot_name: metadata.plotName || '',
+          inspector_name: metadata.inspectorName,
+          receiving_date: metadata.receivingDate,
+          receiving_time: metadata.receivingTime,
+        })
+        .eq('id', id);
+      if (error) throw error;
+      await refresh();
     },
     [refresh],
   );
@@ -234,6 +271,30 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const addFarmPlot = useCallback(
+    async (farmName: string, plotName: string) => {
+      const { error } = await supabase.from('farm_plots').insert({ farm_name: farmName, name: plotName });
+      if (error) {
+        if (error.code === '23505') return;
+        throw error;
+      }
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const deleteFarmPlot = useCallback(
+    async (farmName: string, plotName: string) => {
+      const { error } = await supabase
+        .from('farm_plots')
+        .delete()
+        .match({ farm_name: farmName, name: plotName });
+      if (error) throw error;
+      await refresh();
+    },
+    [refresh],
+  );
+
   const addInspectorName = useCallback(
     async (name: string) => {
       const { error } = await supabase
@@ -269,9 +330,12 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         updateParameter,
         deleteParameter,
         addInspection,
+        updateInspection,
         updateCounts,
         addFarmName,
         deleteFarmName,
+        addFarmPlot,
+        deleteFarmPlot,
         addInspectorName,
         deleteInspectorName,
       }}

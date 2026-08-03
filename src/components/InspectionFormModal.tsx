@@ -1,21 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../hooks/useSupabase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, Clock, User, Sprout, Plus } from 'lucide-react';
+import { X, Calendar, Clock, User, Sprout, Plus, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { Inspection } from '../types';
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  initialData?: Inspection;
 }
 
-export function NewInspectionModal({ open, onClose }: Props) {
+export function InspectionFormModal({ open, onClose, initialData }: Props) {
   const navigate = useNavigate();
-  const { parameters, farmNames, inspectorNames, addInspection, addFarmName, addInspectorName } = useSupabase();
+  const { parameters, farmNames, farmPlots, inspectorNames, addInspection, updateInspection, addFarmName, addFarmPlot, addInspectorName } = useSupabase();
   const { t } = useTranslation();
 
   const [farmName, setFarmName] = useState('');
+  const [plotName, setPlotName] = useState('');
   const [receivingDate, setReceivingDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
@@ -24,17 +27,43 @@ export function NewInspectionModal({ open, onClose }: Props) {
   );
   const [inspectorName, setInspectorName] = useState('');
   const [newFarm, setNewFarm] = useState('');
+  const [newPlot, setNewPlot] = useState('');
   const [newInspector, setNewInspector] = useState('');
+  
   const [showNewFarm, setShowNewFarm] = useState(false);
+  const [showNewPlot, setShowNewPlot] = useState(false);
   const [showNewInspector, setShowNewInspector] = useState(false);
+  
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setFarmName(initialData.farmName);
+        setPlotName(initialData.plotName || '');
+        setReceivingDate(initialData.receivingDate);
+        setReceivingTime(initialData.receivingTime);
+        setInspectorName(initialData.inspectorName);
+      } else {
+        setFarmName('');
+        setPlotName('');
+        setReceivingDate(new Date().toISOString().slice(0, 10));
+        setReceivingTime(new Date().toTimeString().slice(0, 5));
+        setInspectorName('');
+      }
+      setShowNewFarm(false);
+      setShowNewPlot(false);
+      setShowNewInspector(false);
+      setSubmitError('');
+    }
+  }, [open, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalFarm = farmName === '__new__' ? newFarm.trim() : farmName;
-    const finalInspector =
-      inspectorName === '__new__' ? newInspector.trim() : inspectorName;
+    const finalPlot = plotName === '__new__' ? newPlot.trim() : plotName;
+    const finalInspector = inspectorName === '__new__' ? newInspector.trim() : inspectorName;
 
     if (!finalFarm || !receivingDate || !receivingTime || !finalInspector)
       return;
@@ -46,35 +75,54 @@ export function NewInspectionModal({ open, onClose }: Props) {
       if (farmName === '__new__' && newFarm.trim()) {
         await addFarmName(newFarm.trim());
       }
+      if (plotName === '__new__' && newPlot.trim()) {
+        await addFarmPlot(finalFarm, newPlot.trim());
+      }
       if (inspectorName === '__new__' && newInspector.trim()) {
         await addInspectorName(newInspector.trim());
       }
 
-      const initialCounts: Record<string, number> = {};
-      parameters.forEach((p) => {
-        initialCounts[p.id] = 0;
-      });
-
-      const inspection = await addInspection({
-        farmName: finalFarm,
-        inspectorName: finalInspector,
-        receivingDate,
-        receivingTime,
-        counts: initialCounts,
-      });
-
-      if (inspection) {
+      if (initialData) {
+        await updateInspection(initialData.id, {
+          farmName: finalFarm,
+          plotName: finalPlot,
+          inspectorName: finalInspector,
+          receivingDate,
+          receivingTime,
+        });
         onClose();
-        navigate(`/inspect/${inspection.id}`);
+        // Force reload or state update in ReportTable? 
+        // ReportTable receives selectedInspection from HomePage, so HomePage needs to refresh or we just navigate
+      } else {
+        const initialCounts: Record<string, number> = {};
+        parameters.forEach((p) => {
+          initialCounts[p.id] = 0;
+        });
+
+        const inspection = await addInspection({
+          farmName: finalFarm,
+          plotName: finalPlot,
+          inspectorName: finalInspector,
+          receivingDate,
+          receivingTime,
+          counts: initialCounts,
+        });
+
+        if (inspection) {
+          onClose();
+          navigate(`/inspect/${inspection.id}`);
+        }
       }
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : 'Failed to create inspection',
+        err instanceof Error ? err.message : 'Failed to save inspection',
       );
     } finally {
       setSubmitting(false);
     }
   };
+
+  const availablePlots = farmName && farmName !== '__new__' ? (farmPlots[farmName] || []) : [];
 
   return (
     <AnimatePresence>
@@ -83,7 +131,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm sm:p-4 pb-safe"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm sm:p-4 pb-safe"
         >
           <motion.div 
             initial={{ y: '100%' }}
@@ -94,7 +142,9 @@ export function NewInspectionModal({ open, onClose }: Props) {
           >
             {/* Header */}
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-bold text-gray-900 tracking-tight">{t('New Inspection')}</h2>
+              <h2 className="text-xl font-bold text-gray-900 tracking-tight">
+                {initialData ? t('Edit Info') : t('New Inspection')}
+              </h2>
               <button 
                 onClick={onClose}
                 className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
@@ -122,7 +172,11 @@ export function NewInspectionModal({ open, onClose }: Props) {
                       <div className="relative flex-1">
                         <select
                           value={farmName}
-                          onChange={(e) => setFarmName(e.target.value)}
+                          onChange={(e) => {
+                            setFarmName(e.target.value);
+                            setPlotName('');
+                            setShowNewPlot(false);
+                          }}
                           className="appearance-none w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all"
                           required
                         >
@@ -157,6 +211,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
                           if (newFarm.trim()) {
                             addFarmName(newFarm.trim());
                             setFarmName(newFarm.trim());
+                            setPlotName('');
                           }
                           setShowNewFarm(false);
                         }}
@@ -174,6 +229,74 @@ export function NewInspectionModal({ open, onClose }: Props) {
                     </div>
                   )}
                 </div>
+
+                {/* Plot Selection */}
+                {(farmName || showNewFarm) && (
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                      <MapPin className="w-4 h-4 text-green-600" />
+                      {t('Plot Name (Optional)')}
+                    </label>
+                    {!showNewPlot ? (
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <select
+                            value={plotName}
+                            onChange={(e) => setPlotName(e.target.value)}
+                            className="appearance-none w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all"
+                          >
+                            <option value="">{t('No plot selected')}</option>
+                            {availablePlots.map((name) => (
+                              <option key={name} value={name}>{name}</option>
+                            ))}
+                            <option value="__new__">{t('✨ Add new plot')}</option>
+                          </select>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPlot(true)}
+                          className="px-4 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newPlot}
+                          onChange={(e) => setNewPlot(e.target.value)}
+                          placeholder={t('Enter plot name...')}
+                          className="flex-1 border-2 border-green-500 bg-white rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:ring-4 focus:ring-green-500/10 transition-all"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (newPlot.trim()) {
+                              const fName = farmName === '__new__' ? newFarm.trim() : farmName;
+                              if (fName) {
+                                await addFarmPlot(fName, newPlot.trim());
+                                setPlotName(newPlot.trim());
+                              }
+                            }
+                            setShowNewPlot(false);
+                          }}
+                          className="px-4 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors"
+                        >
+                          {t('Add')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPlot(false)}
+                          className="px-4 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Date & Time */}
                 <div className="flex gap-4">
@@ -273,7 +396,7 @@ export function NewInspectionModal({ open, onClose }: Props) {
                     disabled={submitting}
                     className="w-full py-4 text-white font-bold text-lg bg-green-600 rounded-2xl hover:bg-green-700 active:scale-[0.98] transition-all disabled:opacity-50 shadow-lg shadow-green-600/30"
                   >
-                    {submitting ? t('Starting...') : t('Start Inspection')}
+                    {submitting ? t('Starting...') : (initialData ? t('Save Changes') : t('Start Inspection'))}
                   </button>
                 </div>
               </form>
