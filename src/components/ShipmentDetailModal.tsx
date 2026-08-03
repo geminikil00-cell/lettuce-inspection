@@ -37,6 +37,7 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
 
   const dispatchedMap: Record<string, number> = {};
   shipments.forEach((s) => {
+    if (s.id === shipment.id) return;
     s.items.forEach((item) => {
       if (item.stockId) {
         dispatchedMap[item.stockId] = (dispatchedMap[item.stockId] || 0) + item.pallets;
