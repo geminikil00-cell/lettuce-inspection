@@ -3,15 +3,21 @@ import { Home, BarChart3, Settings, Languages } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'framer-motion';
 
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export function Navigation() {
   const location = useLocation();
   const { t, i18n } = useTranslation();
 
-  const toggleLanguage = () => {
-    i18n.changeLanguage(i18n.language === 'en' ? 'ar' : 'en');
+  useEffect(() => {
     document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
+  }, [i18n.language]);
+
+  const toggleLanguage = () => {
+    const nextLang = i18n.language === 'en' ? 'ar' : 'en';
+    i18n.changeLanguage(nextLang);
+    document.documentElement.dir = nextLang === 'ar' ? 'rtl' : 'ltr';
   };
 
   const navItems = [
