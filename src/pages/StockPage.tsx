@@ -2,10 +2,11 @@ import { useState, useRef, useMemo } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
 import { DispatchModal } from '../components/DispatchModal';
 import { ShipmentDetailModal } from '../components/ShipmentDetailModal';
+import { ShipmentDecisionModal } from '../components/ShipmentDecisionModal';
 import { InspectionFormModal } from '../components/InspectionFormModal';
 import { ReportTable } from '../components/ReportTable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Truck, Plus, Edit2, Trash2, Clock, FileSpreadsheet, Image as ImageIcon, X, Search, Link2 } from 'lucide-react';
+import { Package, Truck, Plus, Edit2, Trash2, Clock, FileSpreadsheet, Image as ImageIcon, X, Search, Link2, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { format, isToday, isYesterday } from 'date-fns';
 import type { StockEntry, Shipment, Inspection } from '../types';
@@ -40,6 +41,7 @@ export function StockPage() {
 
   // Dispatch modal
   const [showDispatch, setShowDispatch] = useState(false);
+  const [showDecision, setShowDecision] = useState(false);
 
   // Shipment detail
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
@@ -470,10 +472,16 @@ export function StockPage() {
           )}
 
           {availableStock.length > 0 && (
-            <button onClick={() => setShowDispatch(true)} className="w-full py-4 bg-green-600 text-white text-lg font-bold rounded-2xl hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-600/20">
-              <Truck className="w-5 h-5" />
-              {t('Dispatch Shipment')}
-            </button>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDispatch(true)} className="flex-1 py-4 bg-green-600 text-white text-lg font-bold rounded-2xl hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-600/20">
+                <Truck className="w-5 h-5" />
+                {t('Dispatch Shipment')}
+              </button>
+              <button onClick={() => setShowDecision(true)} className="flex-1 py-4 bg-gray-900 text-white text-lg font-bold rounded-2xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-gray-900/20">
+                <Zap className="w-5 h-5" />
+                {t('Shipment Decision')}
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -529,6 +537,10 @@ export function StockPage() {
 
       <AnimatePresence>
         {showDispatch && <DispatchModal open={showDispatch} onClose={() => setShowDispatch(false)} stockEntries={stockEntries} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showDecision && <ShipmentDecisionModal open={showDecision} onClose={() => setShowDecision(false)} />}
       </AnimatePresence>
 
       <AnimatePresence>

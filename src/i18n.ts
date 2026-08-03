@@ -107,7 +107,17 @@ const en = {
     "Not inspected": "Not inspected",
     "Inspect": "Inspect",
     "Inspect Stock": "Inspect Stock",
-    "Link Inspection": "Link Inspection"
+    "Link Inspection": "Link Inspection",
+    "Shipment Decision": "Shipment Decision",
+    "Quality Score": "Quality Score",
+    "Storage Time": "Storage Time",
+    "days": "days",
+    "Max Stocks/Shipment": "Max Stocks/Shipment",
+    "Pallets/Shipment": "Pallets/Shipment",
+    "Optimize": "Optimize",
+    "shipments": "shipments",
+    "Overflow": "Overflow",
+    "Shipment": "Shipment"
   }
 };
 
@@ -217,7 +227,17 @@ const ar = {
     "Not inspected": "غير مفحوص",
     "Inspect": "فحص",
     "Inspect Stock": "فحص المخزون",
-    "Link Inspection": "ربط الفحص"
+    "Link Inspection": "ربط الفحص",
+    "Shipment Decision": "قرار الشحن",
+    "Quality Score": "درجة الجودة",
+    "Storage Time": "مدة التخزين",
+    "days": "أيام",
+    "Max Stocks/Shipment": "الحد الأقصى للمخزون/الشحنة",
+    "Pallets/Shipment": "باليتات/الشحنة",
+    "Optimize": "تحسين",
+    "shipments": "شحنات",
+    "Overflow": "فائض",
+    "Shipment": "شحنة"
   }
 };
 
