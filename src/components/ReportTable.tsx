@@ -1,6 +1,7 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { toJpeg } from 'html-to-image';
 import type { Inspection, Parameter } from '../types';
+import { useSupabase } from '../hooks/useSupabase';
 import { motion } from 'framer-motion';
 import { X, FileSpreadsheet, Image as ImageIcon, Edit2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -15,8 +16,37 @@ interface Props {
 
 export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Props) {
   const tableRef = useRef<HTMLDivElement>(null);
+  const { farmNames, farmPlots, updateInspection } = useSupabase();
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  const [editFarm, setEditFarm] = useState(inspection.farmName);
+  const [editPlot, setEditPlot] = useState(inspection.plotName || '');
+
+  const availablePlots = farmPlots[editFarm] || [];
+
+  const handleFarmChange = async (newFarm: string) => {
+    setEditFarm(newFarm);
+    setEditPlot('');
+    await updateInspection(inspection.id, {
+      farmName: newFarm,
+      plotName: '',
+      inspectorName: inspection.inspectorName,
+      receivingDate: inspection.receivingDate,
+      receivingTime: inspection.receivingTime,
+    });
+  };
+
+  const handlePlotChange = async (newPlot: string) => {
+    setEditPlot(newPlot);
+    await updateInspection(inspection.id, {
+      farmName: editFarm,
+      plotName: newPlot,
+      inspectorName: inspection.inspectorName,
+      receivingDate: inspection.receivingDate,
+      receivingTime: inspection.receivingTime,
+    });
+  };
 
   const paramMap = new Map(parameters.map((p) => [p.id, p]));
   const total = Object.values(inspection.counts).reduce((a, b) => a + b, 0);
@@ -27,10 +57,25 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
       quality: 0.95,
       backgroundColor: '#ffffff'
     });
+
+    const filename = `Inspection_${editFarm.replace(/\s+/g, '_')}_${inspection.receivingDate}.jpg`;
+
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], filename, { type: 'image/jpeg' });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        return;
+      } catch {}
+    }
+
     const link = document.createElement('a');
-    link.download = `Inspection_${inspection.farmName.replace(/\s+/g, '_')}_${inspection.receivingDate}.jpg`;
-    link.href = dataUrl;
+    link.download = filename;
+    link.href = URL.createObjectURL(blob);
     link.click();
+    URL.revokeObjectURL(link.href);
   };
 
   const exportExcel = async () => {
@@ -38,7 +83,7 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
     const rows: (string | number)[][] = [
       [t('Lettuce Inspection Report')],
       [],
-      [t('Farm Name'), inspection.farmName + (inspection.plotName ? ` (${inspection.plotName})` : '')],
+      [t('Farm Name'), editFarm + (editPlot ? ` (${editPlot})` : '')],
       [t('Inspector'), inspection.inspectorName],
       [t('Date'), inspection.receivingDate],
       [t('Time'), inspection.receivingTime],
@@ -64,7 +109,7 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, t('Report'));
-    XLSX.writeFile(wb, `Inspection_${inspection.farmName.replace(/\s+/g, '_')}_${inspection.receivingDate}.xlsx`);
+      XLSX.writeFile(wb, `Inspection_${editFarm.replace(/\s+/g, '_')}_${inspection.receivingDate}.xlsx`);
   };
 
   return (
@@ -85,7 +130,7 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
           <div>
             <h2 className="text-xl font-bold text-gray-900 tracking-tight">{t('Inspection Report')}</h2>
             <p className="text-sm text-gray-500 font-medium">
-              {inspection.farmName} {inspection.plotName && <span className="text-gray-400">({inspection.plotName})</span>}
+              {editFarm || inspection.farmName} {editPlot && <span className="text-gray-400">({editPlot})</span>}
             </p>
           </div>
           <button 
@@ -113,9 +158,27 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
             <div className="grid grid-cols-2 gap-4 mb-8 bg-gray-50 p-4 rounded-2xl">
               <div>
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t('Farm')}</div>
-                <div className="font-semibold text-gray-900">
-                  {inspection.farmName} {inspection.plotName && <span className="text-gray-500">({inspection.plotName})</span>}
-                </div>
+                <select
+                  value={editFarm}
+                  onChange={(e) => handleFarmChange(e.target.value)}
+                  className="appearance-none w-full border border-gray-200 bg-white rounded-lg px-2.5 py-1.5 text-gray-900 font-semibold text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/10 transition-colors"
+                >
+                  {farmNames.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+                {availablePlots.length > 0 && (
+                  <select
+                    value={editPlot}
+                    onChange={(e) => handlePlotChange(e.target.value)}
+                    className="appearance-none w-full border border-gray-200 bg-white rounded-lg px-2.5 py-1.5 text-gray-500 font-medium text-sm mt-1.5 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/10 transition-colors"
+                  >
+                    <option value="">{t('No plot selected')}</option>
+                    {availablePlots.map((name) => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
               <div>
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t('Inspector')}</div>
