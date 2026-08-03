@@ -35,6 +35,7 @@ interface SupabaseContextType extends AppState {
   addInspection: (inspection: Omit<Inspection, 'id' | 'createdAt'>) => Promise<Inspection | null>;
   updateInspection: (id: string, metadata: Omit<Inspection, 'id' | 'createdAt' | 'counts'>) => Promise<void>;
   updateCounts: (inspectionId: string, counts: Record<string, number>) => Promise<void>;
+  setSubmitted: (id: string) => Promise<void>;
   addFarmName: (name: string) => Promise<void>;
   deleteFarmName: (name: string) => Promise<void>;
   addFarmPlot: (farmName: string, plotName: string) => Promise<void>;
@@ -53,6 +54,7 @@ function mapInspection(db: DbInspection, counts: Record<string, number>): Inspec
     inspectorName: db.inspector_name,
     receivingDate: db.receiving_date,
     receivingTime: db.receiving_time,
+    submittedAt: db.submitted_at,
     createdAt: db.created_at,
     counts,
   };
@@ -247,6 +249,17 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const setSubmitted = useCallback(
+    async (id: string) => {
+      await supabase
+        .from('inspections')
+        .update({ submitted_at: new Date().toISOString() })
+        .eq('id', id);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const addFarmName = useCallback(
     async (name: string) => {
       const { error } = await supabase.from('farm_names').insert({ name });
@@ -332,6 +345,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         addInspection,
         updateInspection,
         updateCounts,
+        setSubmitted,
         addFarmName,
         deleteFarmName,
         addFarmPlot,

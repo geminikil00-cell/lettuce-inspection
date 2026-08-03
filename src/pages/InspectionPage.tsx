@@ -16,7 +16,7 @@ const triggerHaptic = () => {
 export function InspectionPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { inspections, parameters, updateCounts } = useSupabase();
+  const { inspections, parameters, updateCounts, setSubmitted } = useSupabase();
   const { t } = useTranslation();
   const [showConfirmFinish, setShowConfirmFinish] = useState(false);
 
@@ -97,8 +97,8 @@ export function InspectionPage() {
   };
 
   const handleFinish = async () => {
-    // Force immediate save before leaving
     await updateCounts(inspection.id, localCounts);
+    await setSubmitted(inspection.id);
     localStorage.removeItem(`inspection_${id}`);
     navigate('/');
   };

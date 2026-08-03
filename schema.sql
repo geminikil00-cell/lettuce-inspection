@@ -37,6 +37,7 @@ CREATE TABLE inspections (
   inspector_name TEXT NOT NULL,
   receiving_date TEXT NOT NULL,
   receiving_time TEXT NOT NULL,
+  submitted_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

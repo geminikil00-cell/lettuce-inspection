@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { X, FileSpreadsheet, Image as ImageIcon, Edit2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 
 interface Props {
   inspection: Inspection;
@@ -51,6 +52,10 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
   const paramMap = new Map(parameters.map((p) => [p.id, p]));
   const total = Object.values(inspection.counts).reduce((a, b) => a + b, 0);
 
+  const submittedIso = inspection.submittedAt || inspection.createdAt;
+  const submittedDate = format(new Date(submittedIso), 'MMM d, yyyy');
+  const submittedTime = format(new Date(submittedIso), 'h:mm a');
+
   const exportJpg = async () => {
     if (!tableRef.current) return;
     const dataUrl = await toJpeg(tableRef.current, { 
@@ -58,7 +63,7 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
       backgroundColor: '#ffffff'
     });
 
-    const filename = `Inspection_${editFarm.replace(/\s+/g, '_')}_${inspection.receivingDate}.jpg`;
+    const filename = `Inspection_${editFarm.replace(/\s+/g, '_')}_${format(new Date(submittedIso), 'yyyy-MM-dd')}.jpg`;
 
     const res = await fetch(dataUrl);
     const blob = await res.blob();
@@ -85,8 +90,8 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
       [],
       [t('Farm Name'), editFarm + (editPlot ? ` (${editPlot})` : '')],
       [t('Inspector'), inspection.inspectorName],
-      [t('Date'), inspection.receivingDate],
-      [t('Time'), inspection.receivingTime],
+      [t('Date'), submittedDate],
+      [t('Time'), submittedTime],
       [],
       [t('Parameter'), t('Count'), t('Percentage')],
     ];
@@ -109,7 +114,7 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, t('Report'));
-      XLSX.writeFile(wb, `Inspection_${editFarm.replace(/\s+/g, '_')}_${inspection.receivingDate}.xlsx`);
+      XLSX.writeFile(wb, `Inspection_${editFarm.replace(/\s+/g, '_')}_${format(new Date(submittedIso), 'yyyy-MM-dd')}.xlsx`);
   };
 
   return (
@@ -150,8 +155,9 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
                 <p className="text-gray-500 font-medium">{t('Ref:')} {inspection.id.slice(0, 8).toUpperCase()}</p>
               </div>
               <div className="text-end">
-                <div className="font-bold text-gray-900">{inspection.receivingDate}</div>
-                <div className="text-gray-500">{inspection.receivingTime}</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">{t('Submitted')}</div>
+                <div className="font-bold text-gray-900">{submittedDate}</div>
+                <div className="text-gray-500 text-sm">{submittedTime}</div>
               </div>
             </div>
 

@@ -33,6 +33,7 @@ export interface DbInspection {
   inspector_name: string;
   receiving_date: string;
   receiving_time: string;
+  submitted_at?: string;
   created_at: string;
 }
 

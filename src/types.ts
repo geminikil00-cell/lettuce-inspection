@@ -11,6 +11,7 @@ export interface Inspection {
   inspectorName: string;
   receivingDate: string;
   receivingTime: string;
+  submittedAt?: string;
   createdAt: string;
   counts: Record<string, number>;
 }

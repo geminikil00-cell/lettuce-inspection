@@ -79,7 +79,11 @@ const en = {
     "Export Excel": "Export Excel",
     "Lettuce Inspection Report": "Lettuce Inspection Report",
     "Percentage": "Percentage",
-    "Total": "Total"
+    "Total": "Total",
+    "Today": "Today",
+    "Yesterday": "Yesterday",
+    "Submitted": "Submitted",
+    "No reports for this day": "No reports for this day"
   }
 };
 
@@ -161,7 +165,11 @@ const ar = {
     "Export Excel": "تصدير إلى إكسل",
     "Lettuce Inspection Report": "تقرير فحص الخس",
     "Percentage": "النسبة المئوية",
-    "Total": "المجموع"
+    "Total": "المجموع",
+    "Today": "اليوم",
+    "Yesterday": "أمس",
+    "Submitted": "تاريخ التقديم",
+    "No reports for this day": "لا توجد تقارير لهذا اليوم"
   }
 };
 

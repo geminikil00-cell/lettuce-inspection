@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { InspectionFormModal } from '../components/InspectionFormModal';
 import { ReportTable } from '../components/ReportTable';
 import { useSupabase } from '../hooks/useSupabase';
@@ -6,6 +6,7 @@ import type { Inspection } from '../types';
 import { Plus, ChevronRight, Sprout, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { format, isToday, isYesterday } from 'date-fns';
 
 export function HomePage() {
   const { inspections, parameters, loading, error } = useSupabase();
@@ -15,8 +16,53 @@ export function HomePage() {
     useState<Inspection | null>(null);
   const [editingInspection, setEditingInspection] = 
     useState<Inspection | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const dateScrollRef = useRef<HTMLDivElement>(null);
 
   const paramMap = new Map(parameters.map((p) => [p.id, p]));
+
+  const groupedByDate = useMemo(() => {
+    const groups = new Map<string, Inspection[]>();
+    inspections.forEach((i) => {
+      const iso = i.submittedAt || i.createdAt;
+      const key = format(new Date(iso), 'yyyy-MM-dd');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(i);
+    });
+    return new Map([...groups.entries()].sort((a, b) => b[0].localeCompare(a[0])));
+  }, [inspections]);
+
+  const dateKeys = useMemo(() => [...groupedByDate.keys()], [groupedByDate]);
+
+  const effectiveDate = useMemo(() => {
+    if (selectedDate && dateKeys.includes(selectedDate)) return selectedDate;
+    const today = format(new Date(), 'yyyy-MM-dd');
+    return dateKeys.includes(today) ? today : (dateKeys[0] || today);
+  }, [selectedDate, dateKeys]);
+
+  const filteredInspections = effectiveDate ? groupedByDate.get(effectiveDate) || [] : [];
+
+  useEffect(() => {
+    if (!selectedDate) return;
+    const idx = dateKeys.indexOf(selectedDate);
+    if (idx >= 0 && dateScrollRef.current) {
+      const chip = dateScrollRef.current.children[idx] as HTMLElement;
+      if (chip) {
+        chip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [selectedDate, dateKeys]);
+
+  const getDateLabel = (key: string) => {
+    const d = new Date(key + 'T00:00:00');
+    if (isToday(d)) return t('Today');
+    if (isYesterday(d)) return t('Yesterday');
+    return format(d, 'MMM d');
+  };
+
+  const formatTime = (iso: string) => {
+    return format(new Date(iso), 'h:mm a');
+  };
 
   if (loading) {
     return (
@@ -39,21 +85,13 @@ export function HomePage() {
     );
   }
 
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
   return (
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }}
       className="max-w-2xl mx-auto px-4 py-6 sm:py-8"
     >
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{t('Recent Inspections')}</h1>
           <p className="text-gray-500 text-sm mt-1">{t('Manage and review your field data.')}</p>
@@ -80,82 +118,120 @@ export function HomePage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          <AnimatePresence>
-            {inspections.map((inspection, idx) => {
-              const total = Object.values(inspection.counts).reduce(
-                (a, b) => a + b,
-                0,
-              );
-
+        <>
+          <div
+            ref={dateScrollRef}
+            className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide"
+          >
+            {dateKeys.map((key) => {
+              const count = groupedByDate.get(key)!.length;
+              const isActive = key === effectiveDate;
               return (
-                <motion.button
-                  key={inspection.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  onClick={() => setSelectedInspection(inspection)}
-                  className="group w-full text-left bg-white border border-gray-100 rounded-3xl p-5 hover:shadow-xl hover:shadow-gray-200/50 hover:border-green-100 transition-all duration-300"
+                <button
+                  key={key}
+                  onClick={() => setSelectedDate(key)}
+                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-colors ${
+                    isActive
+                      ? 'bg-gray-900 text-white shadow-lg shadow-gray-900/20'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex gap-4 items-center">
-                      <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center shrink-0">
-                        <Sprout className="w-6 h-6 text-green-600" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-gray-900 text-lg">
-                          {inspection.farmName} {inspection.plotName ? <span className="text-gray-400 text-sm font-medium">({inspection.plotName})</span> : ''}
-                        </div>
-                        <div className="flex items-center gap-3 text-sm text-gray-500 font-medium mt-0.5">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5" />
-                            {formatDate(inspection.receivingDate)}
-                          </span>
-                          <span className="w-1 h-1 rounded-full bg-gray-300" />
-                          <span>{inspection.inspectorName}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right flex flex-col items-end">
-                      <div className="text-2xl font-black text-gray-900 tracking-tight">
-                        {total}
-                      </div>
-                      <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
-                        {t('Heads')}
-                      </div>
-                    </div>
-                  </div>
-
-                  {total > 0 && (
-                    <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden flex">
-                      {Object.entries(inspection.counts)
-                        .filter(([, c]) => c > 0)
-                        .sort(([, a], [, b]) => b - a)
-                        .map(([pid, count]) => {
-                          const p = paramMap.get(pid);
-                          if (!p) return null;
-                          const pct = (count / total) * 100;
-                          return (
-                            <div
-                              key={pid}
-                              style={{ width: `${pct}%`, backgroundColor: p.color }}
-                              className="h-full transition-all"
-                              title={`${p.name}: ${count}`}
-                            />
-                          );
-                        })}
-                    </div>
-                  )}
-                  
-                  <div className="mt-4 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-sm font-semibold text-green-600">{t('View full report')}</span>
-                    <ChevronRight className="w-5 h-5 text-green-600" />
-                  </div>
-                </motion.button>
+                  {getDateLabel(key)}
+                  <span className={`ml-1.5 text-xs ${isActive ? 'text-gray-300' : 'text-gray-400'}`}>
+                    {count}
+                  </span>
+                </button>
               );
             })}
-          </AnimatePresence>
-        </div>
+          </div>
+
+          {filteredInspections.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Clock className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-500 font-medium">{t('No reports for this day')}</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <AnimatePresence>
+                {filteredInspections.map((inspection, idx) => {
+                  const total = Object.values(inspection.counts).reduce(
+                    (a, b) => a + b,
+                    0,
+                  );
+                  const iso = inspection.submittedAt || inspection.createdAt;
+
+                  return (
+                    <motion.button
+                      key={inspection.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      onClick={() => setSelectedInspection(inspection)}
+                      className="group w-full text-left bg-white border border-gray-100 rounded-3xl p-5 hover:shadow-xl hover:shadow-gray-200/50 hover:border-green-100 transition-all duration-300"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex gap-4 items-center">
+                          <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center shrink-0">
+                            <Sprout className="w-6 h-6 text-green-600" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-900 text-lg">
+                              {inspection.farmName} {inspection.plotName ? <span className="text-gray-400 text-sm font-medium">({inspection.plotName})</span> : ''}
+                            </div>
+                            <div className="flex items-center gap-3 text-sm text-gray-500 font-medium mt-0.5">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                {formatTime(iso)}
+                              </span>
+                              <span className="w-1 h-1 rounded-full bg-gray-300" />
+                              <span>{inspection.inspectorName}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right flex flex-col items-end">
+                          <div className="text-2xl font-black text-gray-900 tracking-tight">
+                            {total}
+                          </div>
+                          <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                            {t('Heads')}
+                          </div>
+                        </div>
+                      </div>
+
+                      {total > 0 && (
+                        <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden flex">
+                          {Object.entries(inspection.counts)
+                            .filter(([, c]) => c > 0)
+                            .sort(([, a], [, b]) => b - a)
+                            .map(([pid, count]) => {
+                              const p = paramMap.get(pid);
+                              if (!p) return null;
+                              const pct = (count / total) * 100;
+                              return (
+                                <div
+                                  key={pid}
+                                  style={{ width: `${pct}%`, backgroundColor: p.color }}
+                                  className="h-full transition-all"
+                                  title={`${p.name}: ${count}`}
+                                />
+                              );
+                            })}
+                        </div>
+                      )}
+                      
+                      <div className="mt-4 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-sm font-semibold text-green-600">{t('View full report')}</span>
+                        <ChevronRight className="w-5 h-5 text-green-600" />
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          )}
+        </>
       )}
 
       <InspectionFormModal
