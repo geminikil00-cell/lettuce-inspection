@@ -15,7 +15,7 @@ import type {
   DbInspection,
   DbInspectionCount,
 } from '../lib/supabase';
-import type { Parameter, Inspection } from '../types';
+import type { Parameter, Inspection, StockEntry, Shipment, ShipmentItem } from '../types';
 
 interface AppState {
   parameters: Parameter[];
@@ -23,6 +23,8 @@ interface AppState {
   farmNames: string[];
   farmPlots: Record<string, string[]>;
   inspectorNames: string[];
+  stockEntries: StockEntry[];
+  shipments: Shipment[];
   loading: boolean;
   error: string | null;
 }
@@ -42,6 +44,12 @@ interface SupabaseContextType extends AppState {
   deleteFarmPlot: (farmName: string, plotName: string) => Promise<void>;
   addInspectorName: (name: string) => Promise<void>;
   deleteInspectorName: (name: string) => Promise<void>;
+  addStock: (entry: { farmName: string; plotName: string; receivingDate: string; pallets: number }) => Promise<void>;
+  updateStock: (id: string, data: { farmName: string; plotName: string; receivingDate: string; pallets: number }) => Promise<void>;
+  deleteStock: (id: string) => Promise<void>;
+  addShipment: (items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => Promise<void>;
+  deleteShipment: (id: string) => Promise<void>;
+  updateShipmentItems: (shipmentId: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => Promise<void>;
 }
 
 const SupabaseContext = createContext<SupabaseContextType | null>(null);
@@ -67,6 +75,8 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     farmNames: [],
     farmPlots: {},
     inspectorNames: [],
+    stockEntries: [],
+    shipments: [],
     loading: true,
     error: null,
   });
@@ -81,6 +91,9 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         inspectorsRes,
         inspectionsRes,
         countsRes,
+        stockRes,
+        shipmentsRes,
+        shipItemsRes,
       ] = await Promise.all([
         supabase.from('parameters').select('*').order('created_at'),
         supabase.from('farm_names').select('*').order('name'),
@@ -91,6 +104,9 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
           .select('*')
           .order('created_at', { ascending: false }),
         supabase.from('inspection_counts').select('*'),
+        supabase.from('stock').select('*').order('created_at'),
+        supabase.from('shipments').select('*').order('created_at', { ascending: false }),
+        supabase.from('shipment_items').select('*'),
       ]);
 
       if (paramsRes.error) throw paramsRes.error;
@@ -99,6 +115,9 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       if (inspectorsRes.error) throw inspectorsRes.error;
       if (inspectionsRes.error) throw inspectionsRes.error;
       if (countsRes.error) throw countsRes.error;
+      if (stockRes.error && stockRes.error.code !== '42P01') throw stockRes.error;
+      if (shipmentsRes.error && shipmentsRes.error.code !== '42P01') throw shipmentsRes.error;
+      if (shipItemsRes.error && shipItemsRes.error.code !== '42P01') throw shipItemsRes.error;
 
       const params = (paramsRes.data as DbParameter[]).map((p) => ({
         id: p.id,
@@ -129,7 +148,42 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         mapInspection(db, countMap[db.id] ?? {}),
       );
 
-      setState({ parameters: params, inspections, farmNames, farmPlots, inspectorNames, loading: false, error: null });
+      const stockEntries: StockEntry[] = (stockRes.data || []).map((s: any) => ({
+        id: s.id,
+        farmName: s.farm_name,
+        plotName: s.plot_name || '',
+        receivingDate: s.receiving_date,
+        pallets: s.pallets,
+        createdAt: s.created_at,
+      }));
+
+      const shipmentItems: ShipmentItem[] = (shipItemsRes.data || []).map((si: any) => ({
+        id: si.id,
+        shipmentId: si.shipment_id,
+        stockId: si.stock_id,
+        farmName: si.farm_name,
+        plotName: si.plot_name || '',
+        receivingDate: si.receiving_date,
+        pallets: si.pallets,
+        createdAt: si.created_at,
+      }));
+
+      const shipmentMap = new Map<string, Shipment>();
+      (shipmentsRes.data || []).forEach((s: any) => {
+        shipmentMap.set(s.id, {
+          id: s.id,
+          dispatchedAt: s.dispatched_at,
+          createdAt: s.created_at,
+          items: [],
+        });
+      });
+      shipmentItems.forEach((item) => {
+        const s = shipmentMap.get(item.shipmentId);
+        if (s) s.items.push(item);
+      });
+      const shipments: Shipment[] = [...shipmentMap.values()];
+
+      setState({ parameters: params, inspections, farmNames, farmPlots, inspectorNames, stockEntries, shipments, loading: false, error: null });
     } catch (err) {
       setState((prev) => ({
         ...prev,
@@ -334,6 +388,97 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const addStock = useCallback(
+    async (entry: { farmName: string; plotName: string; receivingDate: string; pallets: number }) => {
+      const { error } = await supabase.from('stock').insert({
+        farm_name: entry.farmName,
+        plot_name: entry.plotName,
+        receiving_date: entry.receivingDate,
+        pallets: entry.pallets,
+      });
+      if (error) throw error;
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const updateStock = useCallback(
+    async (id: string, data: { farmName: string; plotName: string; receivingDate: string; pallets: number }) => {
+      const { error } = await supabase
+        .from('stock')
+        .update({
+          farm_name: data.farmName,
+          plot_name: data.plotName,
+          receiving_date: data.receivingDate,
+          pallets: data.pallets,
+        })
+        .eq('id', id);
+      if (error) throw error;
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const deleteStock = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from('stock').delete().eq('id', id);
+      if (error) throw error;
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const addShipment = useCallback(
+    async (items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => {
+      const { data, error } = await supabase
+        .from('shipments')
+        .insert({ dispatched_at: new Date().toISOString() })
+        .select('*')
+        .single();
+      if (error) throw error;
+      const shipmentId = data.id;
+      const itemRows = items.map((item) => ({
+        shipment_id: shipmentId,
+        stock_id: item.stockId || null,
+        farm_name: item.farmName,
+        plot_name: item.plotName,
+        receiving_date: item.receivingDate,
+        pallets: item.pallets,
+      }));
+      const { error: itemsError } = await supabase.from('shipment_items').insert(itemRows);
+      if (itemsError) throw itemsError;
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const deleteShipment = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from('shipments').delete().eq('id', id);
+      if (error) throw error;
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const updateShipmentItems = useCallback(
+    async (shipmentId: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => {
+      await supabase.from('shipment_items').delete().eq('shipment_id', shipmentId);
+      const itemRows = items.map((item) => ({
+        shipment_id: shipmentId,
+        stock_id: item.stockId || null,
+        farm_name: item.farmName,
+        plot_name: item.plotName,
+        receiving_date: item.receivingDate,
+        pallets: item.pallets,
+      }));
+      const { error } = await supabase.from('shipment_items').insert(itemRows);
+      if (error) throw error;
+      await refresh();
+    },
+    [refresh],
+  );
+
   return (
     <SupabaseContext.Provider
       value={{
@@ -352,6 +497,12 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         deleteFarmPlot,
         addInspectorName,
         deleteInspectorName,
+        addStock,
+        updateStock,
+        deleteStock,
+        addShipment,
+        deleteShipment,
+        updateShipmentItems,
       }}
     >
       {children}

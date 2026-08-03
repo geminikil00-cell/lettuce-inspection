@@ -83,7 +83,27 @@ const en = {
     "Today": "Today",
     "Yesterday": "Yesterday",
     "Submitted": "Submitted",
-    "No reports for this day": "No reports for this day"
+    "No reports for this day": "No reports for this day",
+    "Stock": "Stock",
+    "Dispatched": "Dispatched",
+    "Pallets": "Pallets",
+    "Available": "Available",
+    "Add Stock": "Add Stock",
+    "Edit Stock": "Edit Stock",
+    "Dispatch Shipment": "Dispatch Shipment",
+    "Dispatched Shipments": "Dispatched Shipments",
+    "No stock entries yet": "No stock entries yet",
+    "No shipments yet": "No shipments yet",
+    "No available stock for this day": "No available stock for this day",
+    "Selected": "Selected",
+    "Total Pallets": "Total Pallets",
+    "Qty to dispatch": "Qty to dispatch",
+    "Confirm Dispatch": "Confirm Dispatch",
+    "Edit Dispatch": "Edit Dispatch",
+    "Shipment Detail": "Shipment Detail",
+    "Add more entries": "Add more entries",
+    "Remove": "Remove",
+    "Farm & Plot": "Farm & Plot"
   }
 };
 
@@ -169,7 +189,27 @@ const ar = {
     "Today": "اليوم",
     "Yesterday": "أمس",
     "Submitted": "تاريخ التقديم",
-    "No reports for this day": "لا توجد تقارير لهذا اليوم"
+    "No reports for this day": "لا توجد تقارير لهذا اليوم",
+    "Stock": "المخزون",
+    "Dispatched": "المشحون",
+    "Pallets": "باليتات",
+    "Available": "متوفر",
+    "Add Stock": "إضافة مخزون",
+    "Edit Stock": "تعديل المخزون",
+    "Dispatch Shipment": "تجهيز شحنة",
+    "Dispatched Shipments": "الشحنات المرسلة",
+    "No stock entries yet": "لا توجد مخزونات بعد",
+    "No shipments yet": "لا توجد شحنات بعد",
+    "No available stock for this day": "لا يوجد مخزون متوفر لهذا اليوم",
+    "Selected": "محدد",
+    "Total Pallets": "إجمالي الباليتات",
+    "Qty to dispatch": "الكمية للشحن",
+    "Confirm Dispatch": "تأكيد الشحن",
+    "Edit Dispatch": "تعديل الشحن",
+    "Shipment Detail": "تفاصيل الشحنة",
+    "Add more entries": "إضافة المزيد",
+    "Remove": "إزالة",
+    "Farm & Plot": "المزرعة والحقل"
   }
 };
 

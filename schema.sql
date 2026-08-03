@@ -91,3 +91,51 @@ CREATE POLICY "anon_select_counts" ON inspection_counts FOR SELECT USING (true);
 CREATE POLICY "anon_insert_counts" ON inspection_counts FOR INSERT WITH CHECK (true);
 CREATE POLICY "anon_update_counts" ON inspection_counts FOR UPDATE USING (true);
 CREATE POLICY "anon_delete_counts" ON inspection_counts FOR DELETE USING (true);
+
+-- ============================================================
+-- Stock Management Tables
+-- ============================================================
+
+CREATE TABLE stock (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  farm_name TEXT NOT NULL,
+  plot_name TEXT NOT NULL DEFAULT '',
+  receiving_date TEXT NOT NULL,
+  pallets INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE shipments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  dispatched_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE shipment_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  shipment_id UUID REFERENCES shipments(id) ON DELETE CASCADE,
+  stock_id UUID REFERENCES stock(id) ON DELETE SET NULL,
+  farm_name TEXT NOT NULL,
+  plot_name TEXT NOT NULL DEFAULT '',
+  receiving_date TEXT NOT NULL,
+  pallets INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE stock ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_select_stock" ON stock FOR SELECT USING (true);
+CREATE POLICY "anon_insert_stock" ON stock FOR INSERT WITH CHECK (true);
+CREATE POLICY "anon_update_stock" ON stock FOR UPDATE USING (true);
+CREATE POLICY "anon_delete_stock" ON stock FOR DELETE USING (true);
+
+ALTER TABLE shipments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_select_shipments" ON shipments FOR SELECT USING (true);
+CREATE POLICY "anon_insert_shipments" ON shipments FOR INSERT WITH CHECK (true);
+CREATE POLICY "anon_update_shipments" ON shipments FOR UPDATE USING (true);
+CREATE POLICY "anon_delete_shipments" ON shipments FOR DELETE USING (true);
+
+ALTER TABLE shipment_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_select_shipitems" ON shipment_items FOR SELECT USING (true);
+CREATE POLICY "anon_insert_shipitems" ON shipment_items FOR INSERT WITH CHECK (true);
+CREATE POLICY "anon_update_shipitems" ON shipment_items FOR UPDATE USING (true);
+CREATE POLICY "anon_delete_shipitems" ON shipment_items FOR DELETE USING (true);

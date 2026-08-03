@@ -43,6 +43,32 @@ export interface DbInspectionCount {
   count: number;
 }
 
+export interface DbStock {
+  id: string;
+  farm_name: string;
+  plot_name: string;
+  receiving_date: string;
+  pallets: number;
+  created_at: string;
+}
+
+export interface DbShipment {
+  id: string;
+  dispatched_at: string;
+  created_at: string;
+}
+
+export interface DbShipmentItem {
+  id: string;
+  shipment_id: string;
+  stock_id?: string;
+  farm_name: string;
+  plot_name: string;
+  receiving_date: string;
+  pallets: number;
+  created_at: string;
+}
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 

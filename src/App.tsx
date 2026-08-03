@@ -4,6 +4,7 @@ import { HomePage } from './pages/HomePage';
 import { ParametersPage } from './pages/ParametersPage';
 import { InspectionPage } from './pages/InspectionPage';
 import { ChartsPage } from './pages/ChartsPage';
+import { StockPage } from './pages/StockPage';
 import { SupabaseProvider } from './hooks/useSupabase';
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
               <Route path="/charts" element={<ChartsPage />} />
               <Route path="/parameters" element={<ParametersPage />} />
               <Route path="/inspect/:id" element={<InspectionPage />} />
+              <Route path="/stock" element={<StockPage />} />
             </Routes>
           </main>
         </div>

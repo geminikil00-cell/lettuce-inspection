@@ -1,0 +1,229 @@
+import { useState, useEffect } from 'react';
+import { useSupabase } from '../hooks/useSupabase';
+import { motion } from 'framer-motion';
+import { X, Plus, Minus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { format } from 'date-fns';
+import type { Shipment, StockEntry } from '../types';
+
+interface Props {
+  shipment: Shipment;
+  stockEntries: StockEntry[];
+  open: boolean;
+  onClose: () => void;
+}
+
+export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: Props) {
+  const { shipments, updateShipmentItems, deleteShipment } = useSupabase();
+  const { t } = useTranslation();
+  const [editing, setEditing] = useState(false);
+  const [items, setItems] = useState<{ stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setItems(shipment.items.map((i) => ({
+        stockId: i.stockId,
+        farmName: i.farmName,
+        plotName: i.plotName,
+        receivingDate: i.receivingDate,
+        pallets: i.pallets,
+      })));
+      setEditing(false);
+    }
+  }, [open, shipment]);
+
+  if (!open) return null;
+
+  const dispatchedMap: Record<string, number> = {};
+  shipments.forEach((s) => {
+    s.items.forEach((item) => {
+      if (item.stockId) {
+        dispatchedMap[item.stockId] = (dispatchedMap[item.stockId] || 0) + item.pallets;
+      }
+    });
+  });
+
+  const getAvailable = (stockId: string | undefined) => {
+    if (!stockId) return Infinity;
+    const entry = stockEntries.find((s) => s.id === stockId);
+    if (!entry) return 0;
+    const dispatched = dispatchedMap[stockId] || 0;
+    return entry.pallets - dispatched;
+  };
+
+  const totalPallets = items.reduce((sum, i) => sum + i.pallets, 0);
+
+  const handleQtyChange = (idx: number, delta: number) => {
+    setItems((prev) => {
+      const next = [...prev];
+      const maxAvail = getAvailable(next[idx].stockId);
+      next[idx] = { ...next[idx], pallets: Math.max(0, Math.min(next[idx].pallets + delta, maxAvail)) };
+      return next;
+    });
+  };
+
+  const handleRemove = (idx: number) => {
+    setItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleSave = async () => {
+    setSubmitting(true);
+    try {
+      await updateShipmentItems(shipment.id, items);
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this shipment? All pallets will be restored to stock.')) return;
+    setSubmitting(true);
+    try {
+      await deleteShipment(shipment.id);
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const dt = new Date(shipment.dispatchedAt);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm sm:p-4 pb-safe"
+    >
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="bg-white w-full max-w-lg sm:rounded-[32px] rounded-t-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+      >
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 tracking-tight">
+              {t('Shipment Detail')}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {format(dt, 'MMM d, yyyy')} — {format(dt, 'h:mm a')}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-4 overflow-y-auto flex-1">
+          {items.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 font-medium">
+              {t('No available stock for this day')}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {items.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-gray-900">
+                        {item.farmName}{item.plotName ? ` (${item.plotName})` : ''}
+                      </div>
+                      <div className="text-sm text-gray-500 font-medium">{item.receivingDate}</div>
+                    </div>
+                    {editing ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleQtyChange(idx, -1)}
+                          className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="font-black text-lg text-gray-900 w-8 text-center">{item.pallets}</span>
+                        <button
+                          onClick={() => handleQtyChange(idx, 1)}
+                          className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleRemove(idx)}
+                          className="ml-2 w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="font-black text-xl text-gray-900">
+                        {item.pallets} <span className="text-sm font-medium text-gray-400">{t('Pallets')}</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 py-4 border-t border-gray-100 shrink-0 flex flex-col gap-2">
+          <div className="flex items-center justify-between text-sm font-bold text-gray-500">
+            <span>{t('Total Pallets')}</span>
+            <span className="text-gray-900 text-lg">{totalPallets}</span>
+          </div>
+          <div className="flex gap-2">
+            {editing ? (
+              <>
+                <button
+                  onClick={() => {
+                    setItems(shipment.items.map((i) => ({
+                      stockId: i.stockId,
+                      farmName: i.farmName,
+                      plotName: i.plotName,
+                      receivingDate: i.receivingDate,
+                      pallets: i.pallets,
+                    })));
+                    setEditing(false);
+                  }}
+                  className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-2xl hover:bg-gray-200 transition-colors"
+                >
+                  {t('Cancel')}
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={submitting}
+                  className="flex-1 py-3 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 disabled:opacity-50 transition-colors"
+                >
+                  {t('Save Changes')}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleDelete}
+                  className="flex-1 py-3 bg-red-50 text-red-700 font-bold rounded-2xl hover:bg-red-100 transition-colors"
+                >
+                  {t('Remove')}
+                </button>
+                <button
+                  onClick={() => setEditing(true)}
+                  className="flex-1 py-3 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 transition-colors"
+                >
+                  {t('Edit Dispatch')}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}

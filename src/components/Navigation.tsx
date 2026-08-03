@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BarChart3, Settings, Languages } from 'lucide-react';
+import { Home, BarChart3, Settings, Languages, Package } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'framer-motion';
 
@@ -23,6 +23,7 @@ export function Navigation() {
   const navItems = [
     { path: '/', label: t('Home'), icon: Home },
     { path: '/charts', label: t('Charts'), icon: BarChart3 },
+    { path: '/stock', label: t('Stock'), icon: Package },
     { path: '/parameters', label: t('Parameters'), icon: Settings },
   ];
 
