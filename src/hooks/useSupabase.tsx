@@ -269,6 +269,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
           plot_name: inspection.plotName || '',
           inspector_name: inspection.inspectorName,
           receiving_date: inspection.receivingDate,
+          receiving_time: '',
           stock_id: stockId,
         })
         .select('*')
@@ -304,6 +305,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
           plot_name: metadata.plotName || '',
           inspector_name: metadata.inspectorName,
           receiving_date: metadata.receivingDate,
+          receiving_time: '',
         })
         .eq('id', id);
       if (error) throw error;
