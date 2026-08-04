@@ -36,6 +36,7 @@ interface SupabaseContextType extends AppState {
   deleteParameter: (id: string) => Promise<void>;
   addInspection: (inspection: Omit<Inspection, 'id' | 'createdAt'>) => Promise<Inspection | null>;
   updateInspection: (id: string, metadata: Omit<Inspection, 'id' | 'createdAt' | 'counts'>) => Promise<void>;
+  deleteInspection: (id: string) => Promise<void>;
   updateCounts: (inspectionId: string, counts: Record<string, number>) => Promise<void>;
   setSubmitted: (id: string) => Promise<void>;
   addFarmName: (name: string) => Promise<void>;
@@ -314,6 +315,15 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const deleteInspection = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from('inspections').delete().eq('id', id);
+      if (error) throw error;
+      await refresh();
+    },
+    [refresh],
+  );
+
   const updateCounts = useCallback(
     async (inspectionId: string, counts: Record<string, number>) => {
       const rows = Object.entries(counts).map(([parameter_id, count]) => ({
@@ -556,6 +566,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         deleteParameter,
         addInspection,
         updateInspection,
+        deleteInspection,
         updateCounts,
         setSubmitted,
         addFarmName,

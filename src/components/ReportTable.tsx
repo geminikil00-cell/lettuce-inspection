@@ -3,7 +3,7 @@ import { toJpeg } from 'html-to-image';
 import type { Inspection, Parameter } from '../types';
 import { useSupabase } from '../hooks/useSupabase';
 import { motion } from 'framer-motion';
-import { X, FileSpreadsheet, Image as ImageIcon, Edit2 } from 'lucide-react';
+import { X, FileSpreadsheet, Image as ImageIcon, Edit2, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -17,7 +17,7 @@ interface Props {
 
 export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Props) {
   const tableRef = useRef<HTMLDivElement>(null);
-  const { farmNames, farmPlots, updateInspection } = useSupabase();
+  const { farmNames, farmPlots, updateInspection, deleteInspection } = useSupabase();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -45,6 +45,12 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
       inspectorName: inspection.inspectorName,
       receivingDate: inspection.receivingDate,
     });
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this inspection report? This cannot be undone.')) return;
+    await deleteInspection(inspection.id);
+    onClose();
   };
 
   const paramMap = new Map(parameters.map((p) => [p.id, p]));
@@ -271,6 +277,13 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
                 {t('Export Excel')}
               </button>
             </div>
+            <button
+              onClick={handleDelete}
+              className="flex items-center justify-center gap-2 py-3.5 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 transition-colors"
+            >
+              <Trash2 className="w-5 h-5" />
+              {t('Delete')}
+            </button>
           </div>
         </div>
       </motion.div>
