@@ -288,19 +288,19 @@ export function StockPage() {
 
       {tab === 'stock' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <button
               onClick={() => setShowAddStock(!showAddStock)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-full hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-full hover:bg-gray-800 transition-colors shrink-0"
             >
               <Plus className="w-4 h-4" />
-              {t('Add Stock')}
+              <span className="hidden sm:inline">{t('Add Stock')}</span>
             </button>
             <div className="flex gap-2">
-              <button onClick={exportStockJpg} className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 text-sm font-semibold rounded-full hover:bg-blue-100 transition-colors">
+              <button onClick={exportStockJpg} className="flex items-center gap-1 px-3 py-2 bg-blue-50 text-blue-700 text-xs sm:text-sm font-semibold rounded-full hover:bg-blue-100 transition-colors">
                 <ImageIcon className="w-4 h-4" />JPG
               </button>
-              <button onClick={exportStockExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-semibold rounded-full hover:bg-emerald-100 transition-colors">
+              <button onClick={exportStockExcel} className="flex items-center gap-1 px-3 py-2 bg-emerald-50 text-emerald-700 text-xs sm:text-sm font-semibold rounded-full hover:bg-emerald-100 transition-colors">
                 <FileSpreadsheet className="w-4 h-4" />Excel
               </button>
             </div>
@@ -347,8 +347,9 @@ export function StockPage() {
               {t('No stock entries yet')}
             </div>
           ) : (
-            <div ref={tableRef} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-              <table className="w-full text-sm">
+            <div ref={tableRef} className="bg-white rounded-3xl border border-gray-100 shadow-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[640px]">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
                     <th className="py-3 px-4 text-start text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Farm & Plot')}</th>
@@ -468,11 +469,12 @@ export function StockPage() {
                   </tr>
                 </tfoot>
               </table>
+              </div>
             </div>
           )}
 
           {availableStock.length > 0 && (
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button onClick={() => setShowDispatch(true)} className="flex-1 py-4 bg-green-600 text-white text-lg font-bold rounded-2xl hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-600/20">
                 <Truck className="w-5 h-5" />
                 {t('Dispatch Shipment')}
