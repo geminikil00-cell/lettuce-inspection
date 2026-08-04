@@ -66,11 +66,15 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
   const submittedDate = format(new Date(submittedIso), 'MMM d, yyyy');
   const submittedTime = format(new Date(submittedIso), 'h:mm a');
 
-  const receivingDateFormatted = format(new Date(inspection.receivingDate), 'MMM d, yyyy');
+  const receivingDateFormatted = inspection.receivingDate
+    ? format(new Date(inspection.receivingDate), 'MMM d, yyyy')
+    : '';
   const receivingTimeFormatted = (() => {
-    const [h, m] = inspection.receivingTime.split(':').map(Number);
+    if (!inspection.receivingTime) return '';
+    const parts = inspection.receivingTime.split(':').map(Number);
+    if (parts.length < 2) return inspection.receivingTime;
     const d = new Date();
-    d.setHours(h, m);
+    d.setHours(parts[0], parts[1]);
     return format(d, 'h:mm a');
   })();
 
