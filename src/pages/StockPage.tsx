@@ -192,19 +192,25 @@ export function StockPage() {
   // Export stock as JPG
   const exportStockJpg = async () => {
     if (!tableRef.current) return;
-    const scrollContainer = tableRef.current.querySelector('.overflow-x-auto') as HTMLElement;
-    const table = tableRef.current.querySelector('table') as HTMLElement;
-    if (!scrollContainer || !table) return;
 
-    const origOverflow = scrollContainer.style.overflowX;
-    const origWidth = scrollContainer.style.width;
-    scrollContainer.style.overflowX = 'visible';
-    scrollContainer.style.width = 'max-content';
-    table.style.width = 'auto';
+    const clone = tableRef.current.cloneNode(true) as HTMLElement;
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.top = '-9999px';
+    wrapper.style.left = '0';
+    wrapper.style.width = 'max-content';
+    wrapper.style.backgroundColor = '#ffffff';
+    clone.querySelector('.overflow-x-auto')?.classList.remove('overflow-x-auto');
+    
+    const table = clone.querySelector('table');
+    if (table) table.style.width = 'auto';
+
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
 
     try {
       const { toJpeg } = await import('html-to-image');
-      const dataUrl = await toJpeg(tableRef.current, { quality: 0.95, backgroundColor: '#ffffff' });
+      const dataUrl = await toJpeg(wrapper, { quality: 0.95, backgroundColor: '#ffffff' });
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const file = new File([blob], `Stock_${format(new Date(), 'yyyy-MM-dd')}.jpg`, { type: 'image/jpeg' });
@@ -217,9 +223,7 @@ export function StockPage() {
       link.click();
       URL.revokeObjectURL(link.href);
     } finally {
-      scrollContainer.style.overflowX = origOverflow;
-      scrollContainer.style.width = origWidth;
-      table.style.width = '';
+      document.body.removeChild(wrapper);
     }
   };
 
