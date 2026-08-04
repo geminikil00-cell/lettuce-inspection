@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../hooks/useSupabase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, Clock, User, Sprout, Plus, MapPin } from 'lucide-react';
+import { X, Calendar, User, Sprout, Plus, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Inspection } from '../types';
 
@@ -23,9 +23,6 @@ export function InspectionFormModal({ open, onClose, initialData, stockPrefill }
   const [receivingDate, setReceivingDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
-  const [receivingTime, setReceivingTime] = useState(
-    new Date().toTimeString().slice(0, 5),
-  );
   const [inspectorName, setInspectorName] = useState('');
   const [newFarm, setNewFarm] = useState('');
   const [newPlot, setNewPlot] = useState('');
@@ -44,19 +41,16 @@ export function InspectionFormModal({ open, onClose, initialData, stockPrefill }
         setFarmName(initialData.farmName);
         setPlotName(initialData.plotName || '');
         setReceivingDate(initialData.receivingDate);
-        setReceivingTime(initialData.receivingTime);
         setInspectorName(initialData.inspectorName);
       } else if (stockPrefill) {
         setFarmName(stockPrefill.farmName);
         setPlotName(stockPrefill.plotName);
         setReceivingDate(stockPrefill.receivingDate);
-        setReceivingTime(new Date().toTimeString().slice(0, 5));
         setInspectorName('');
       } else {
         setFarmName('');
         setPlotName('');
         setReceivingDate(new Date().toISOString().slice(0, 10));
-        setReceivingTime(new Date().toTimeString().slice(0, 5));
         setInspectorName('');
       }
       setShowNewFarm(false);
@@ -95,7 +89,6 @@ export function InspectionFormModal({ open, onClose, initialData, stockPrefill }
           plotName: finalPlot,
           inspectorName: finalInspector,
           receivingDate,
-          receivingTime,
         });
         onClose();
         // Force reload or state update in ReportTable? 
@@ -111,7 +104,6 @@ export function InspectionFormModal({ open, onClose, initialData, stockPrefill }
           plotName: finalPlot,
           inspectorName: finalInspector,
           receivingDate,
-          receivingTime,
           stockId: stockPrefill?.stockId,
           counts: initialCounts,
         });
@@ -306,34 +298,19 @@ export function InspectionFormModal({ open, onClose, initialData, stockPrefill }
                   </div>
                 )}
 
-                {/* Date & Time */}
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                      <Calendar className="w-4 h-4 text-green-600" />
-                      {t('Date')}
-                    </label>
-                    <input
-                      type="date"
-                      value={receivingDate}
-                      onChange={(e) => setReceivingDate(e.target.value)}
-                      className="w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all"
-                      required
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                      <Clock className="w-4 h-4 text-green-600" />
-                      {t('Time')}
-                    </label>
-                    <input
-                      type="time"
-                      value={receivingTime}
-                      onChange={(e) => setReceivingTime(e.target.value)}
-                      className="w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all"
-                      required
-                    />
-                  </div>
+                {/* Date */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    <Calendar className="w-4 h-4 text-green-600" />
+                    {t('Date')}
+                  </label>
+                  <input
+                    type="date"
+                    value={receivingDate}
+                    onChange={(e) => setReceivingDate(e.target.value)}
+                    className="w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all"
+                    required
+                  />
                 </div>
 
                 {/* Inspector Selection */}
