@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
 import { DispatchModal } from '../components/DispatchModal';
 import { ShipmentDetailModal } from '../components/ShipmentDetailModal';
@@ -6,7 +6,7 @@ import { ShipmentDecisionModal } from '../components/ShipmentDecisionModal';
 import { InspectionFormModal } from '../components/InspectionFormModal';
 import { ReportTable } from '../components/ReportTable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Truck, Plus, Edit2, Trash2, Clock, FileSpreadsheet, Image as ImageIcon, X, Search, Link2, Zap } from 'lucide-react';
+import { Plus, Trash2, Truck, Package, Edit2, Clock, FileSpreadsheet, Image as ImageIcon, Search, X, Link2, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { format, isToday, isYesterday } from 'date-fns';
 import type { StockEntry, Shipment, Inspection } from '../types';
@@ -53,6 +53,29 @@ export function StockPage() {
   const [showLinkInspections, setShowLinkInspections] = useState(false);
   const [linkingStockId, setLinkingStockId] = useState<string | null>(null);
 
+  // Column visibility
+  const defectParams = useMemo(() => parameters.filter(p => p.isDefect), [parameters]);
+  const [visibleParams, setVisibleParams] = useState<Set<string>>(() =>
+    new Set(defectParams.map(p => p.id))
+  );
+
+  useEffect(() => {
+    setVisibleParams(new Set(defectParams.map(p => p.id)));
+  }, [defectParams.length]);
+
+  const toggleParam = (id: string) => {
+    setVisibleParams(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const visibleParamsList = useMemo(
+    () => parameters.filter(p => p.isDefect && visibleParams.has(p.id)),
+    [parameters, visibleParams]
+  );
+
   // Date selection for dispatched tab
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -77,30 +100,6 @@ export function StockPage() {
     });
     return map;
   }, [inspections]);
-
-  const getInspectionSummary = (inspection: Inspection) => {
-    const total = Object.values(inspection.counts).reduce((a, b) => a + b, 0);
-    if (total === 0) return { total: 0, defectRate: 0, goodRate: 0, breakdown: [] as { name: string; color: string; pct: number }[] };
-    const paramMap = new Map(parameters.map((p) => [p.id, p]));
-    const defectTotal = Object.entries(inspection.counts)
-      .filter(([pid]) => paramMap.get(pid)?.isDefect)
-      .reduce((sum, [, c]) => sum + c, 0);
-    const goodTotal = total - defectTotal;
-    const breakdown = parameters
-      .filter((p) => p.isDefect)
-      .map((p) => ({
-        name: p.name,
-        color: p.color,
-        pct: ((inspection.counts[p.id] || 0) / total) * 100,
-      }))
-      .filter((b) => b.pct > 0);
-    return {
-      total,
-      defectRate: (defectTotal / total) * 100,
-      goodRate: (goodTotal / total) * 100,
-      breakdown,
-    };
-  };
 
   const availableStock: EnrichedStock[] = useMemo(() => {
     return stockEntries.map((e) => ({
@@ -210,25 +209,27 @@ export function StockPage() {
 
   const exportStockExcel = async () => {
     const XLSX = await import('xlsx');
+    const paramNames = defectParams.map(p => p.name);
+    const headerRow: (string | number)[] = [t('Farm & Plot'), t('Date'), t('Pallets'), ...paramNames];
     const rows: (string | number)[][] = [
       [t('Stock Report'), format(new Date(), 'MMM d, yyyy')],
       [],
-      [t('Farm & Plot'), t('Date'), t('Pallets'), t('Defect Rate')],
+      headerRow,
     ];
     availableStock.forEach((e) => {
       const insp = inspectionsByStockId[e.id];
-      const summary = insp ? getInspectionSummary(insp) : null;
+      const paramCounts = defectParams.map(p => insp ? (insp.counts[p.id] || 0) : '');
       rows.push([
         e.farmName + (e.plotName ? ` (${e.plotName})` : ''),
         e.receivingDate,
         e.available,
-        summary ? `${summary.defectRate.toFixed(1)}%` : t('Not inspected'),
+        ...paramCounts,
       ]);
     });
     rows.push([]);
-    rows.push([t('Total'), '', availableStock.reduce((sum, e) => sum + e.available, 0), '']);
+    rows.push([t('Total'), '', availableStock.reduce((sum, e) => sum + e.available, 0), ...defectParams.map(() => '')]);
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 15 }];
+    ws['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 12 }, ...defectParams.map(() => ({ wch: 10 }))];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, t('Stock'));
     XLSX.writeFile(wb, `Stock_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
@@ -347,130 +348,150 @@ export function StockPage() {
               {t('No stock entries yet')}
             </div>
           ) : (
-            <div ref={tableRef} className="bg-white rounded-3xl border border-gray-100 shadow-sm">
-              <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[480px]">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="py-3 px-3 text-start text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Farm & Plot')}</th>
-                    <th className="py-3 px-3 text-start text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Date')}</th>
-                    <th className="py-3 px-3 text-end text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Pallets')}</th>
-                    <th className="py-3 px-3 text-start text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Defect Rate')}</th>
-                    <th className="py-3 px-3"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  <AnimatePresence>
-                    {availableStock.map((entry) => {
-                      const linkedInspection = inspectionsByStockId[entry.id];
-                      const summary = linkedInspection ? getInspectionSummary(linkedInspection) : null;
+            <>
+              {/* Column picker */}
+              {defectParams.length > 1 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {defectParams.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => toggleParam(p.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                        visibleParams.has(p.id)
+                          ? 'text-white border-transparent shadow-sm'
+                          : 'text-gray-500 border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                      style={visibleParams.has(p.id) ? { backgroundColor: p.color, borderColor: p.color } : {}}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${visibleParams.has(p.id) ? 'bg-white' : ''}`}
+                        style={visibleParams.has(p.id) ? {} : { backgroundColor: p.color }} />
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-                      if (editingStock?.id === entry.id) {
-                        return (
-                          <motion.tr key={`edit-${entry.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-green-50/30">
-                            <td className="py-3 px-4" colSpan={5}>
-                              <div className="flex flex-wrap gap-2">
-                                <select value={editFarm} onChange={(e) => { setEditFarm(e.target.value); setEditPlot(''); }} className="appearance-none border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-gray-900 font-semibold text-sm flex-1">
-                                  {farmNames.map((name) => (<option key={name} value={name}>{name}</option>))}
-                                </select>
-                                {editAvailablePlots.length > 0 && (
-                                  <select value={editPlot} onChange={(e) => setEditPlot(e.target.value)} className="appearance-none border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-gray-500 font-medium text-sm">
-                                    <option value="">{t('No plot selected')}</option>
-                                    {editAvailablePlots.map((name) => (<option key={name} value={name}>{name}</option>))}
+              <div ref={tableRef} className="bg-white rounded-3xl border border-gray-100 shadow-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <th className="py-3 px-3 text-start text-xs font-bold text-gray-400 uppercase tracking-wider sticky left-0 bg-gray-50/50 z-10">{t('Farm & Plot')}</th>
+                      <th className="py-3 px-3 text-start text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Date')}</th>
+                      <th className="py-3 px-3 text-end text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Pallets')}</th>
+                      {visibleParamsList.map((p) => (
+                        <th key={p.id} className="py-3 px-2 text-center text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">{p.name}</th>
+                      ))}
+                      <th className="py-3 px-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    <AnimatePresence>
+                      {availableStock.map((entry) => {
+                        const linkedInspection = inspectionsByStockId[entry.id];
+
+                        const editColSpan = 3 + visibleParamsList.length + 1;
+
+                        if (editingStock?.id === entry.id) {
+                          return (
+                            <motion.tr key={`edit-${entry.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-green-50/30">
+                              <td className="py-3 px-4" colSpan={editColSpan}>
+                                <div className="flex flex-wrap gap-2">
+                                  <select value={editFarm} onChange={(e) => { setEditFarm(e.target.value); setEditPlot(''); }} className="appearance-none border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-gray-900 font-semibold text-sm flex-1">
+                                    {farmNames.map((name) => (<option key={name} value={name}>{name}</option>))}
                                   </select>
+                                  {editAvailablePlots.length > 0 && (
+                                    <select value={editPlot} onChange={(e) => setEditPlot(e.target.value)} className="appearance-none border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-gray-500 font-medium text-sm">
+                                      <option value="">{t('No plot selected')}</option>
+                                      {editAvailablePlots.map((name) => (<option key={name} value={name}>{name}</option>))}
+                                    </select>
+                                  )}
+                                  <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-gray-900 font-medium text-sm" />
+                                  <input type="number" value={editPallets} onChange={(e) => setEditPallets(e.target.value)} className="w-20 border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-gray-900 font-bold text-sm" />
+                                  <button onClick={handleUpdateStock} className="px-3 py-1.5 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700">{t('Save Changes')}</button>
+                                  <button onClick={() => setEditingStock(null)} className="px-3 py-1.5 bg-gray-100 text-gray-500 rounded-lg font-bold text-sm hover:bg-gray-200">{t('Cancel')}</button>
+                                </div>
+                              </td>
+                            </motion.tr>
+                          );
+                        }
+
+                        return (
+                          <motion.tr key={entry.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="hover:bg-gray-50/50">
+                            <td className="py-3 px-3 font-semibold text-gray-900 max-w-[120px] truncate sticky left-0 bg-white">
+                              <button
+                                onClick={() => linkedInspection && setViewingInspection(linkedInspection)}
+                                className={linkedInspection ? 'hover:text-green-700 cursor-pointer truncate block max-w-full' : 'cursor-default truncate block max-w-full'}
+                              >
+                                {entry.farmName}{entry.plotName ? ` (${entry.plotName})` : ''}
+                              </button>
+                            </td>
+                            <td className="py-3 px-3 text-gray-500 font-medium text-xs">{entry.receivingDate}</td>
+                            <td className="py-3 px-3 text-end font-bold text-gray-900">{entry.available}</td>
+                            {visibleParamsList.map((p) => {
+                              const count = linkedInspection ? (linkedInspection.counts[p.id] || 0) : null;
+                              return (
+                                <td key={p.id} className="py-3 px-2 text-center">
+                                  {count !== null ? (
+                                    <span className="font-semibold text-gray-900">{count}</span>
+                                  ) : (
+                                    <span className="text-xs text-gray-300">–</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                            <td className="py-3 px-2">
+                              <div className="flex gap-1 justify-end">
+                                {linkedInspection ? (
+                                  <>
+                                    <button onClick={() => { unlinkInspection(linkedInspection.id); }} className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg" title="Unlink">
+                                      <Link2 className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => setViewingInspection(linkedInspection)} className="p-1.5 text-green-400 hover:text-green-600 hover:bg-green-50 rounded-lg" title="View report">
+                                      <FileSpreadsheet className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button onClick={() => { setLinkingStockId(entry.id); setShowLinkInspections(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Link inspection">
+                                      <Search className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => setInspectPrefill({ farmName: entry.farmName, plotName: entry.plotName, receivingDate: entry.receivingDate, stockId: entry.id })}
+                                      className="p-1.5 text-green-400 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Inspect"
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </button>
+                                  </>
                                 )}
-                                <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-gray-900 font-medium text-sm" />
-                                <input type="number" value={editPallets} onChange={(e) => setEditPallets(e.target.value)} className="w-20 border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-gray-900 font-bold text-sm" />
-                                <button onClick={handleUpdateStock} className="px-3 py-1.5 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700">{t('Save Changes')}</button>
-                                <button onClick={() => setEditingStock(null)} className="px-3 py-1.5 bg-gray-100 text-gray-500 rounded-lg font-bold text-sm hover:bg-gray-200">{t('Cancel')}</button>
+                                <button onClick={() => startEdit(entry)} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg">
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => handleDeleteStock(entry.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               </div>
                             </td>
                           </motion.tr>
                         );
-                      }
-
-                      return (
-                        <motion.tr key={entry.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="hover:bg-gray-50/50">
-                          <td className="py-3 px-3 font-semibold text-gray-900 max-w-[120px] truncate">
-                            <button
-                              onClick={() => linkedInspection && setViewingInspection(linkedInspection)}
-                              className={linkedInspection ? 'hover:text-green-700 cursor-pointer truncate block max-w-full' : 'cursor-default truncate block max-w-full'}
-                            >
-                              {entry.farmName}{entry.plotName ? ` (${entry.plotName})` : ''}
-                            </button>
-                          </td>
-                          <td className="py-3 px-3 text-gray-500 font-medium text-xs">{entry.receivingDate}</td>
-                          <td className="py-3 px-3 text-end font-bold text-gray-900">{entry.available}</td>
-                          <td className="py-3 px-3">
-                            {summary ? (
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden flex">
-                                    <div style={{ width: `${summary.goodRate}%` }} className="h-full bg-green-400" />
-                                  </div>
-                                  <span className="text-xs font-bold text-red-600 whitespace-nowrap">{summary.defectRate.toFixed(1)}%</span>
-                                </div>
-                                <div className="flex flex-wrap gap-1">
-                                  {summary.breakdown.slice(0, 3).map((b) => (
-                                    <span key={b.name} className="text-[10px] font-medium text-gray-500">
-                                      {b.name}: {b.pct.toFixed(1)}%
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-400 font-medium">{t('Not inspected')}</span>
-                                <button
-                                  onClick={() => setInspectPrefill({ farmName: entry.farmName, plotName: entry.plotName, receivingDate: entry.receivingDate, stockId: entry.id })}
-                                  className="text-xs font-bold text-green-600 hover:text-green-700 bg-green-50 px-2 py-0.5 rounded-full"
-                                >
-                                  + {t('Inspect')}
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-3 px-2">
-                            <div className="flex gap-1 justify-end">
-                              {linkedInspection && (
-                                <button onClick={() => { unlinkInspection(linkedInspection.id); }} className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg" title="Unlink">
-                                  <Link2 className="w-4 h-4" />
-                                </button>
-                              )}
-                              {!linkedInspection && (
-                                <button
-                                  onClick={() => { setLinkingStockId(entry.id); setShowLinkInspections(true); }}
-                                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                                  title="Link inspection"
-                                >
-                                  <Search className="w-4 h-4" />
-                                </button>
-                              )}
-                              <button onClick={() => startEdit(entry)} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg">
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => handleDeleteStock(entry.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </motion.tr>
-                      );
-                    })}
-                  </AnimatePresence>
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-gray-900 bg-gray-50/50">
-                    <td className="py-3 px-3 font-black text-gray-900 text-sm">{t('Total')}</td>
-                    <td></td>
-                    <td className="py-3 px-3 text-end font-black text-gray-900 text-lg">{availableStock.reduce((sum, e) => sum + e.available, 0)}</td>
-                    <td></td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
+                      })}
+                    </AnimatePresence>
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-gray-900 bg-gray-50/50">
+                      <td className="py-3 px-3 font-black text-gray-900 text-sm sticky left-0 bg-gray-50/50">{t('Total')}</td>
+                      <td></td>
+                      <td className="py-3 px-3 text-end font-black text-gray-900 text-lg">{availableStock.reduce((sum, e) => sum + e.available, 0)}</td>
+                      {visibleParamsList.map((p) => (
+                        <td key={p.id}></td>
+                      ))}
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {availableStock.length > 0 && (

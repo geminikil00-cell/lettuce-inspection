@@ -7,7 +7,6 @@
   .mb-safe {
     margin-bottom: env(safe-area-inset-bottom);
   }
-}
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
