@@ -207,12 +207,9 @@ export function StockPage() {
 
     const res = await fetch(dataUrl);
     const blob = await res.blob();
-    const file = new File([blob], `Stock_${format(new Date(), 'yyyy-MM-dd')}.jpg`, { type: 'image/jpeg' });
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file] }); return; } catch {}
-    }
+    const filename = `Stock_${format(new Date(), 'yyyy-MM-dd')}.jpg`;
     const link = document.createElement('a');
-    link.download = file.name;
+    link.download = filename;
     link.href = URL.createObjectURL(blob);
     link.click();
     URL.revokeObjectURL(link.href);
