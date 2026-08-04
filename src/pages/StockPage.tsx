@@ -192,42 +192,28 @@ export function StockPage() {
   // Export stock as JPG
   const exportStockJpg = async () => {
     if (!tableRef.current) return;
-    const container = tableRef.current.parentElement as HTMLElement;
-    if (!container) return;
-
-    const origContainerOverflow = container.style.overflow;
-    const origContainerMaxW = container.style.maxWidth;
-    container.style.overflow = 'visible';
-    container.style.maxWidth = 'none';
-
-    const scrollDiv = tableRef.current.querySelector('.overflow-x-auto') as HTMLElement | null;
     const table = tableRef.current.querySelector('table') as HTMLElement | null;
-    
-    const origScrollOverflow = scrollDiv?.style.overflowX ?? '';
-    if (scrollDiv) scrollDiv.style.overflowX = 'visible';
-    if (table) table.style.width = 'auto';
+    if (!table) return;
 
-    try {
-      await new Promise(r => setTimeout(r, 50));
-      const { toJpeg } = await import('html-to-image');
-      const dataUrl = await toJpeg(tableRef.current, { quality: 0.95, backgroundColor: '#ffffff' });
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      const file = new File([blob], `Stock_${format(new Date(), 'yyyy-MM-dd')}.jpg`, { type: 'image/jpeg' });
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file] }); return; } catch {}
-      }
-      const link = document.createElement('a');
-      link.download = file.name;
-      link.href = URL.createObjectURL(blob);
-      link.click();
-      URL.revokeObjectURL(link.href);
-    } finally {
-      container.style.overflow = origContainerOverflow;
-      container.style.maxWidth = origContainerMaxW;
-      if (scrollDiv) scrollDiv.style.overflowX = origScrollOverflow;
-      if (table) table.style.width = '';
+    const { toJpeg } = await import('html-to-image');
+    const dataUrl = await toJpeg(table, {
+      quality: 0.95,
+      backgroundColor: '#ffffff',
+      width: table.scrollWidth,
+      height: table.scrollHeight,
+    });
+
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], `Stock_${format(new Date(), 'yyyy-MM-dd')}.jpg`, { type: 'image/jpeg' });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); return; } catch {}
     }
+    const link = document.createElement('a');
+    link.download = file.name;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    URL.revokeObjectURL(link.href);
   };
 
   const exportStockExcel = async () => {
