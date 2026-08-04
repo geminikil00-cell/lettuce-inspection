@@ -76,6 +76,8 @@ export function StockPage() {
     [parameters, visibleParams]
   );
 
+  const [showPercentages, setShowPercentages] = useState(false);
+
   // Date selection for dispatched tab
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -380,6 +382,19 @@ export function StockPage() {
                 </div>
               )}
 
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  onClick={() => setShowPercentages(!showPercentages)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    showPercentages
+                      ? 'bg-green-600 text-white border-green-600'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  {showPercentages ? '%' : '#'} {t('Show as')} {showPercentages ? '%' : '#'}
+                </button>
+              </div>
+
               <div ref={tableRef} className="bg-white rounded-3xl border border-gray-100 shadow-sm">
                 <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -389,7 +404,9 @@ export function StockPage() {
                       <th className="py-3 px-3 text-start text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Date')}</th>
                       <th className="py-3 px-3 text-end text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Pallets')}</th>
                       {visibleParamsList.map((p) => (
-                        <th key={p.id} className="py-3 px-2 text-center text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">{p.name}</th>
+                        <th key={p.id} className="py-3 px-2 text-center text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                          {p.name}{showPercentages ? ' %' : ''}
+                        </th>
                       ))}
                       <th className="py-3 px-3"></th>
                     </tr>
@@ -439,10 +456,14 @@ export function StockPage() {
                             <td className="py-3 px-3 text-end font-bold text-gray-900">{entry.available}</td>
                             {visibleParamsList.map((p) => {
                               const count = linkedInspection ? (linkedInspection.counts[p.id] || 0) : null;
+                              const total = linkedInspection ? Object.values(linkedInspection.counts).reduce((a, b) => a + b, 0) : 0;
+                              const display = count !== null
+                                ? (showPercentages && total > 0 ? `${((count / total) * 100).toFixed(1)}%` : String(count))
+                                : null;
                               return (
                                 <td key={p.id} className="py-3 px-2 text-center">
-                                  {count !== null ? (
-                                    <span className="font-semibold text-gray-900">{count}</span>
+                                  {display !== null ? (
+                                    <span className="font-semibold text-gray-900">{display}</span>
                                   ) : (
                                     <span className="text-xs text-gray-300">–</span>
                                   )}
