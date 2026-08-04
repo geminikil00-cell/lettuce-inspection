@@ -192,25 +192,25 @@ export function StockPage() {
   // Export stock as JPG
   const exportStockJpg = async () => {
     if (!tableRef.current) return;
+    const container = tableRef.current.parentElement as HTMLElement;
+    if (!container) return;
 
-    const clone = tableRef.current.cloneNode(true) as HTMLElement;
-    const wrapper = document.createElement('div');
-    wrapper.style.position = 'fixed';
-    wrapper.style.top = '-9999px';
-    wrapper.style.left = '0';
-    wrapper.style.width = 'max-content';
-    wrapper.style.backgroundColor = '#ffffff';
-    clone.querySelector('.overflow-x-auto')?.classList.remove('overflow-x-auto');
+    const origContainerOverflow = container.style.overflow;
+    const origContainerMaxW = container.style.maxWidth;
+    container.style.overflow = 'visible';
+    container.style.maxWidth = 'none';
+
+    const scrollDiv = tableRef.current.querySelector('.overflow-x-auto') as HTMLElement | null;
+    const table = tableRef.current.querySelector('table') as HTMLElement | null;
     
-    const table = clone.querySelector('table');
+    const origScrollOverflow = scrollDiv?.style.overflowX ?? '';
+    if (scrollDiv) scrollDiv.style.overflowX = 'visible';
     if (table) table.style.width = 'auto';
 
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
-
     try {
+      await new Promise(r => setTimeout(r, 50));
       const { toJpeg } = await import('html-to-image');
-      const dataUrl = await toJpeg(wrapper, { quality: 0.95, backgroundColor: '#ffffff' });
+      const dataUrl = await toJpeg(tableRef.current, { quality: 0.95, backgroundColor: '#ffffff' });
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const file = new File([blob], `Stock_${format(new Date(), 'yyyy-MM-dd')}.jpg`, { type: 'image/jpeg' });
@@ -223,7 +223,10 @@ export function StockPage() {
       link.click();
       URL.revokeObjectURL(link.href);
     } finally {
-      document.body.removeChild(wrapper);
+      container.style.overflow = origContainerOverflow;
+      container.style.maxWidth = origContainerMaxW;
+      if (scrollDiv) scrollDiv.style.overflowX = origScrollOverflow;
+      if (table) table.style.width = '';
     }
   };
 
