@@ -34,6 +34,7 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
       plotName: '',
       inspectorName: inspection.inspectorName,
       receivingDate: inspection.receivingDate,
+      receivingTime: inspection.receivingTime,
     });
   };
 
@@ -44,6 +45,7 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
       plotName: newPlot,
       inspectorName: inspection.inspectorName,
       receivingDate: inspection.receivingDate,
+      receivingTime: inspection.receivingTime,
     });
   };
 
@@ -63,6 +65,14 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
   const submittedIso = inspection.submittedAt || inspection.createdAt;
   const submittedDate = format(new Date(submittedIso), 'MMM d, yyyy');
   const submittedTime = format(new Date(submittedIso), 'h:mm a');
+
+  const receivingDateFormatted = format(new Date(inspection.receivingDate), 'MMM d, yyyy');
+  const receivingTimeFormatted = (() => {
+    const [h, m] = inspection.receivingTime.split(':').map(Number);
+    const d = new Date();
+    d.setHours(h, m);
+    return format(d, 'h:mm a');
+  })();
 
   const exportJpg = async () => {
     if (!tableRef.current) return;
@@ -98,8 +108,10 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
       [],
       [t('Farm Name'), editFarm + (editPlot ? ` (${editPlot})` : '')],
       [t('Inspector'), inspection.inspectorName],
-      [t('Date'), submittedDate],
-      [t('Time'), submittedTime],
+      [t('Receiving Date'), receivingDateFormatted],
+      [t('Receiving Time'), receivingTimeFormatted],
+      [t('Submitted Date'), submittedDate],
+      [t('Submitted Time'), submittedTime],
       [],
       [t('Parameter'), t('Count'), t('Percentage')],
     ];
@@ -197,6 +209,14 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
               <div>
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t('Inspector')}</div>
                 <div className="font-semibold text-gray-900">{inspection.inspectorName}</div>
+              </div>
+              <div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t('Receiving Date')}</div>
+                <div className="font-semibold text-gray-900">{receivingDateFormatted}</div>
+              </div>
+              <div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t('Receiving Time')}</div>
+                <div className="font-semibold text-gray-900">{receivingTimeFormatted}</div>
               </div>
             </div>
 

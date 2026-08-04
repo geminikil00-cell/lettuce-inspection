@@ -11,6 +11,7 @@ export interface Inspection {
   plotName?: string;
   inspectorName: string;
   receivingDate: string;
+  receivingTime: string;
   stockId?: string;
   submittedAt?: string;
   createdAt: string;
