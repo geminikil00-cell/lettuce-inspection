@@ -256,7 +256,7 @@ export function StockPage() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto px-4 py-6 sm:py-8 mb-safe">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 bg-gray-900 rounded-2xl flex items-center justify-center">
           <Package className="w-6 h-6 text-white" />
@@ -349,14 +349,14 @@ export function StockPage() {
           ) : (
             <div ref={tableRef} className="bg-white rounded-3xl border border-gray-100 shadow-sm">
               <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[640px]">
+              <table className="w-full text-sm min-w-[480px]">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="py-3 px-4 text-start text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Farm & Plot')}</th>
-                    <th className="py-3 px-4 text-start text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Date')}</th>
-                    <th className="py-3 px-4 text-end text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Pallets')}</th>
-                    <th className="py-3 px-4 text-start text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Defect Rate')}</th>
-                    <th className="py-3 px-4 w-20"></th>
+                    <th className="py-3 px-3 text-start text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Farm & Plot')}</th>
+                    <th className="py-3 px-3 text-start text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Date')}</th>
+                    <th className="py-3 px-3 text-end text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Pallets')}</th>
+                    <th className="py-3 px-3 text-start text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Defect Rate')}</th>
+                    <th className="py-3 px-3"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -391,17 +391,17 @@ export function StockPage() {
 
                       return (
                         <motion.tr key={entry.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="hover:bg-gray-50/50">
-                          <td className="py-3 px-4 font-semibold text-gray-900">
+                          <td className="py-3 px-3 font-semibold text-gray-900 max-w-[120px] truncate">
                             <button
                               onClick={() => linkedInspection && setViewingInspection(linkedInspection)}
-                              className={linkedInspection ? 'hover:text-green-700 cursor-pointer' : 'cursor-default'}
+                              className={linkedInspection ? 'hover:text-green-700 cursor-pointer truncate block max-w-full' : 'cursor-default truncate block max-w-full'}
                             >
                               {entry.farmName}{entry.plotName ? ` (${entry.plotName})` : ''}
                             </button>
                           </td>
-                          <td className="py-3 px-4 text-gray-500 font-medium">{entry.receivingDate}</td>
-                          <td className="py-3 px-4 text-end font-bold text-gray-900">{entry.available}</td>
-                          <td className="py-3 px-4">
+                          <td className="py-3 px-3 text-gray-500 font-medium text-xs">{entry.receivingDate}</td>
+                          <td className="py-3 px-3 text-end font-bold text-gray-900">{entry.available}</td>
+                          <td className="py-3 px-3">
                             {summary ? (
                               <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-2">
@@ -430,7 +430,7 @@ export function StockPage() {
                               </div>
                             )}
                           </td>
-                          <td className="py-3 px-4">
+                          <td className="py-3 px-2">
                             <div className="flex gap-1 justify-end">
                               {linkedInspection && (
                                 <button onClick={() => { unlinkInspection(linkedInspection.id); }} className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg" title="Unlink">
@@ -461,9 +461,9 @@ export function StockPage() {
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-gray-900 bg-gray-50/50">
-                    <td className="py-3 px-4 font-black text-gray-900 text-sm">{t('Total')}</td>
+                    <td className="py-3 px-3 font-black text-gray-900 text-sm">{t('Total')}</td>
                     <td></td>
-                    <td className="py-3 px-4 text-end font-black text-gray-900 text-lg">{availableStock.reduce((sum, e) => sum + e.available, 0)}</td>
+                    <td className="py-3 px-3 text-end font-black text-gray-900 text-lg">{availableStock.reduce((sum, e) => sum + e.available, 0)}</td>
                     <td></td>
                     <td></td>
                   </tr>
@@ -474,7 +474,7 @@ export function StockPage() {
           )}
 
           {availableStock.length > 0 && (
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 pb-safe mb-16 sm:mb-0">
               <button onClick={() => setShowDispatch(true)} className="flex-1 py-4 bg-green-600 text-white text-lg font-bold rounded-2xl hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-600/20">
                 <Truck className="w-5 h-5" />
                 {t('Dispatch Shipment')}

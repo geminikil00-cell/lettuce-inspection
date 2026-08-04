@@ -12,7 +12,7 @@ export default function App() {
     <BrowserRouter>
       <SupabaseProvider>
         {/* pb-16 to account for mobile bottom nav, min-h-screen to ensure full height */}
-        <div className="min-h-screen bg-gray-50/50 pb-20 sm:pb-0">
+        <div className="min-h-screen bg-gray-50/50 pb-24 sm:pb-0">
           <Navigation />
           <main>
             <Routes>
