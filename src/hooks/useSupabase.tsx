@@ -246,33 +246,36 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       let stockId = inspection.stockId || null;
 
       if (!stockId) {
-        const { data: matchingStock } = await supabase
-          .from('stock')
-          .select('id')
-          .eq('farm_name', inspection.farmName)
-          .eq('plot_name', inspection.plotName || '')
-          .eq('receiving_date', inspection.receivingDate);
-        if (matchingStock && matchingStock.length === 1) {
-          const { data: linked } = await supabase
-            .from('inspections')
+        try {
+          const { data: matchingStock } = await supabase
+            .from('stock')
             .select('id')
-            .eq('stock_id', matchingStock[0].id);
-          if (!linked || linked.length === 0) {
-            stockId = matchingStock[0].id;
+            .eq('farm_name', inspection.farmName)
+            .eq('plot_name', inspection.plotName || '')
+            .eq('receiving_date', inspection.receivingDate);
+          if (matchingStock && matchingStock.length === 1) {
+            const { data: linked } = await supabase
+              .from('inspections')
+              .select('id')
+              .eq('stock_id', matchingStock[0].id);
+            if (!linked || linked.length === 0) {
+              stockId = matchingStock[0].id;
+            }
           }
-        }
+        } catch {}
       }
+
+      const insertData: Record<string, unknown> = {
+        farm_name: inspection.farmName,
+        plot_name: inspection.plotName || '',
+        inspector_name: inspection.inspectorName,
+        receiving_date: inspection.receivingDate,
+      };
+      if (stockId) insertData.stock_id = stockId;
 
       const { data, error } = await supabase
         .from('inspections')
-        .insert({
-          farm_name: inspection.farmName,
-          plot_name: inspection.plotName || '',
-          inspector_name: inspection.inspectorName,
-          receiving_date: inspection.receivingDate,
-          receiving_time: '',
-          stock_id: stockId,
-        })
+        .insert(insertData)
         .select('*')
         .single();
       if (error) throw error;
@@ -306,7 +309,6 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
           plot_name: metadata.plotName || '',
           inspector_name: metadata.inspectorName,
           receiving_date: metadata.receivingDate,
-          receiving_time: '',
         })
         .eq('id', id);
       if (error) throw error;
