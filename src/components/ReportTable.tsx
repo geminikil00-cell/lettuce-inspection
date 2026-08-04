@@ -49,8 +49,12 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
 
   const handleDelete = async () => {
     if (!window.confirm('Delete this inspection report? This cannot be undone.')) return;
-    await deleteInspection(inspection.id);
-    onClose();
+    try {
+      await deleteInspection(inspection.id);
+      onClose();
+    } catch (err: any) {
+      alert(`Failed to delete: ${err.message || 'Permission denied or network error'}`);
+    }
   };
 
   const paramMap = new Map(parameters.map((p) => [p.id, p]));

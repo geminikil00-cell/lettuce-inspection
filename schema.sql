@@ -84,6 +84,7 @@ ALTER TABLE inspections ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "anon_select_inspects" ON inspections FOR SELECT USING (true);
 CREATE POLICY "anon_insert_inspects" ON inspections FOR INSERT WITH CHECK (true);
 CREATE POLICY "anon_update_inspects" ON inspections FOR UPDATE USING (true);
+CREATE POLICY "anon_delete_inspects" ON inspections FOR DELETE USING (true);
 
 ALTER TABLE inspection_counts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "anon_select_counts" ON inspection_counts FOR SELECT USING (true);
