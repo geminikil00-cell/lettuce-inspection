@@ -187,9 +187,17 @@ export function ParametersPage() {
                   />
                   <span className="flex-1 font-bold text-gray-900 text-lg flex items-center gap-2">
                     {param.name}
-                    {param.isDefect && (
-                      <span className="text-[10px] uppercase font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-md">Defect</span>
-                    )}
+                    <button
+                      onClick={async () => {
+                        await updateParameter(param.id, param.name, param.color, !param.isDefect);
+                      }}
+                      className={param.isDefect 
+                        ? 'text-[10px] uppercase font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-md hover:bg-red-200'
+                        : 'text-[10px] uppercase font-bold bg-green-100 text-green-600 px-1.5 py-0.5 rounded-md hover:bg-green-200'
+                      }
+                    >
+                      {param.isDefect ? 'Defect' : 'Free ✓'}
+                    </button>
                   </span>
                   <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <button
