@@ -3,7 +3,7 @@ import { toJpeg } from 'html-to-image';
 import type { Inspection, Parameter } from '../types';
 import { useSupabase } from '../hooks/useSupabase';
 import { motion } from 'framer-motion';
-import { X, FileSpreadsheet, Image as ImageIcon, Edit2, Trash2 } from 'lucide-react';
+import { X, FileSpreadsheet, Image as ImageIcon, Edit2, Trash2, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -17,7 +17,7 @@ interface Props {
 
 export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Props) {
   const tableRef = useRef<HTMLDivElement>(null);
-  const { farmNames, farmPlots, updateInspection, deleteInspection } = useSupabase();
+  const { farmNames, farmPlots, updateInspection, deleteInspection, unlinkInspection } = useSupabase();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -54,6 +54,16 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
       onClose();
     } catch (err: any) {
       alert(`Failed to delete: ${err.message || 'Permission denied or network error'}`);
+    }
+  };
+
+  const handleUnlink = async () => {
+    if (!window.confirm('Unlink this inspection from stock?')) return;
+    try {
+      await unlinkInspection(inspection.id);
+      onClose();
+    } catch (err: any) {
+      alert(`Failed to unlink: ${err.message || 'Permission denied or network error'}`);
     }
   };
 
@@ -299,6 +309,15 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
                 {t('Export Excel')}
               </button>
             </div>
+            {inspection.stockId && (
+              <button
+                onClick={handleUnlink}
+                className="flex items-center justify-center gap-2 py-3.5 bg-orange-50 text-orange-600 font-bold rounded-2xl hover:bg-orange-100 transition-colors"
+              >
+                <Link2 className="w-5 h-5" />
+                {t('Unlink from Stock')}
+              </button>
+            )}
             <button
               onClick={handleDelete}
               className="flex items-center justify-center gap-2 py-3.5 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 transition-colors"
