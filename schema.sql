@@ -134,6 +134,9 @@ CREATE POLICY "anon_insert_shipments" ON shipments FOR INSERT WITH CHECK (true);
 CREATE POLICY "anon_update_shipments" ON shipments FOR UPDATE USING (true);
 CREATE POLICY "anon_delete_shipments" ON shipments FOR DELETE USING (true);
 
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS name TEXT DEFAULT '';
+CREATE POLICY "anon_delete_shipments" ON shipments FOR DELETE USING (true);
+
 ALTER TABLE shipment_items ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "anon_select_shipitems" ON shipment_items FOR SELECT USING (true);
 CREATE POLICY "anon_insert_shipitems" ON shipment_items FOR INSERT WITH CHECK (true);

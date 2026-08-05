@@ -28,6 +28,7 @@ export interface StockEntry {
 
 export interface Shipment {
   id: string;
+  name: string;
   dispatchedAt: string;
   createdAt: string;
   items: ShipmentItem[];

@@ -34,6 +34,7 @@ export function DispatchModal({ stockEntries, open, onClose }: Props) {
   }, [stockEntries, shipments]);
 
   const [selections, setSelections] = useState<Record<string, number>>({});
+  const [shipmentName, setShipmentName] = useState('');
 
   if (!open) return null;
 
@@ -71,8 +72,9 @@ export function DispatchModal({ stockEntries, open, onClose }: Props) {
         receivingDate: e.receivingDate,
         pallets: selections[e.id],
       }));
-      await addShipment(items);
+      await addShipment(shipmentName.trim(), items);
       setSelections({});
+      setShipmentName('');
       onClose();
     } finally {
       setSubmitting(false);
@@ -109,6 +111,15 @@ export function DispatchModal({ stockEntries, open, onClose }: Props) {
         </div>
 
         <div className="p-4 overflow-y-auto flex-1">
+          <div className="mb-4">
+            <input
+              type="text"
+              value={shipmentName}
+              onChange={(e) => setShipmentName(e.target.value)}
+              placeholder={t('Shipment name (optional)')}
+              className="w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all"
+            />
+          </div>
           {availableStock.length === 0 ? (
             <div className="text-center py-12 text-gray-500 font-medium">
               {t('No available stock for this day')}

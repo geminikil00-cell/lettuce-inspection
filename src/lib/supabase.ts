@@ -55,6 +55,7 @@ export interface DbStock {
 
 export interface DbShipment {
   id: string;
+  name: string;
   dispatched_at: string;
   created_at: string;
 }

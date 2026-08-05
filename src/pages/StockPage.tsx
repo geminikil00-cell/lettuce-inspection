@@ -559,7 +559,10 @@ export function StockPage() {
                     <motion.button key={s.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }} onClick={() => setSelectedShipment(s)} className="w-full text-left bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-md hover:border-gray-200 transition-all">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="flex items-center gap-2 text-sm text-gray-500 font-medium mb-1">
+                          {s.name && (
+                            <div className="font-bold text-gray-900 mb-0.5">{s.name}</div>
+                          )}
+                          <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
                             <Clock className="w-3.5 h-3.5" />{format(dt, 'h:mm a')}
                           </div>
                           <div className="text-xs text-gray-400 font-medium">{s.items.length} {s.items.length === 1 ? 'entry' : 'entries'}</div>

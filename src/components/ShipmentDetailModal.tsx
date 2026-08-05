@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
 import { motion } from 'framer-motion';
 import { X, Plus, Minus } from 'lucide-react';
@@ -50,7 +50,10 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
     const entry = stockEntries.find((s) => s.id === stockId);
     if (!entry) return 0;
     const dispatched = dispatchedMap[stockId] || 0;
-    return entry.pallets - dispatched;
+    const inThisShipment = items
+      .filter((i) => i.stockId === stockId)
+      .reduce((sum, i) => sum + i.pallets, 0);
+    return entry.pallets - dispatched + inThisShipment;
   };
 
   const totalPallets = items.reduce((sum, i) => sum + i.pallets, 0);
@@ -68,10 +71,27 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
     setItems((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const handleAddStock = (entry: StockEntry) => {
+    const maxAvail = getAvailable(entry.id);
+    if (maxAvail <= 0) return;
+    setItems((prev) => [...prev, {
+      stockId: entry.id,
+      farmName: entry.farmName,
+      plotName: entry.plotName,
+      receivingDate: entry.receivingDate,
+      pallets: 1,
+    }]);
+  };
+
+  const addableStock = useMemo(() => {
+    return stockEntries.filter((entry) => getAvailable(entry.id) > 0);
+  }, [stockEntries]);
+
   const handleSave = async () => {
     setSubmitting(true);
     try {
-      await updateShipmentItems(shipment.id, items);
+      const filtered = items.filter((i) => i.pallets > 0);
+      await updateShipmentItems(shipment.id, filtered);
       onClose();
     } finally {
       setSubmitting(false);
@@ -108,7 +128,7 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-xl font-bold text-gray-900 tracking-tight">
-              {t('Shipment Detail')}
+              {shipment.name || t('Shipment Detail')}
             </h2>
             <p className="text-sm text-gray-500">
               {format(dt, 'MMM d, yyyy')} — {format(dt, 'h:mm a')}
@@ -123,7 +143,7 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
         </div>
 
         <div className="p-4 overflow-y-auto flex-1">
-          {items.length === 0 ? (
+          {items.length === 0 && !editing ? (
             <div className="text-center py-12 text-gray-500 font-medium">
               {t('No available stock for this day')}
             </div>
@@ -171,6 +191,29 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
                   </div>
                 </div>
               ))}
+
+              {editing && addableStock.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="text-sm font-bold text-gray-500 mb-2">{t('Add more entries')}</p>
+                  <div className="space-y-1 max-h-[150px] overflow-y-auto">
+                    {addableStock.map((entry) => (
+                      <button
+                        key={entry.id}
+                        onClick={() => handleAddStock(entry)}
+                        className="w-full text-left p-3 bg-white border border-gray-100 rounded-xl hover:border-green-200 hover:bg-green-50/30 transition-colors flex items-center justify-between"
+                      >
+                        <div>
+                          <div className="font-semibold text-gray-900 text-sm">
+                            {entry.farmName}{entry.plotName ? ` (${entry.plotName})` : ''}
+                          </div>
+                          <div className="text-xs text-gray-400">{entry.receivingDate} — {getAvailable(entry.id)} pallets avail</div>
+                        </div>
+                        <Plus className="w-5 h-5 text-green-600" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -48,7 +48,7 @@ interface SupabaseContextType extends AppState {
   addStock: (entry: { farmName: string; plotName: string; receivingDate: string; pallets: number }) => Promise<void>;
   updateStock: (id: string, data: { farmName: string; plotName: string; receivingDate: string; pallets: number }) => Promise<void>;
   deleteStock: (id: string) => Promise<void>;
-  addShipment: (items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => Promise<void>;
+  addShipment: (name: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => Promise<void>;
   deleteShipment: (id: string) => Promise<void>;
   updateShipmentItems: (shipmentId: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => Promise<void>;
   linkInspectionToStock: (inspectionId: string, stockId: string) => Promise<void>;
@@ -176,6 +176,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       (shipmentsRes.data || []).forEach((s: any) => {
         shipmentMap.set(s.id, {
           id: s.id,
+          name: s.name || '',
           dispatchedAt: s.dispatched_at,
           createdAt: s.created_at,
           items: [],
@@ -484,10 +485,10 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   );
 
   const addShipment = useCallback(
-    async (items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => {
+    async (name: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => {
       const { data, error } = await supabase
         .from('shipments')
-        .insert({ dispatched_at: new Date().toISOString() })
+        .insert({ name, dispatched_at: new Date().toISOString() })
         .select('*')
         .single();
       if (error) throw error;
