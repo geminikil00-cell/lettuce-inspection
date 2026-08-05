@@ -3,6 +3,7 @@ export interface Parameter {
   name: string;
   color: string;
   isDefect: boolean;
+  isSpecial: boolean;
 }
 
 export interface Inspection {

@@ -72,7 +72,7 @@ export function StockPage() {
   };
 
   const visibleParamsList = useMemo(
-    () => parameters.filter(p => p.isDefect && visibleParams.has(p.id)),
+    () => parameters.filter(p => p.isDefect && !p.isSpecial && visibleParams.has(p.id)),
     [parameters, visibleParams]
   );
 

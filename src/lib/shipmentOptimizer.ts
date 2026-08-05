@@ -88,7 +88,7 @@ export function optimizeShipments(
 
     const defectPcts: Record<string, number> = {};
     parameters
-      .filter((p) => p.isDefect)
+      .filter((p) => p.isDefect && !p.isSpecial)
       .forEach((p) => {
         defectPcts[p.id] = totalHeads > 0 ? ((inspection.counts[p.id] || 0) / totalHeads) * 100 : 0;
       });

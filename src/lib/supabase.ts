@@ -5,6 +5,7 @@ export interface DbParameter {
   name: string;
   color: string;
   is_defect: boolean;
+  is_special: boolean;
   created_at: string;
 }
 

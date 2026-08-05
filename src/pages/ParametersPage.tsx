@@ -25,6 +25,7 @@ export function ParametersPage() {
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
   const [editIsDefect, setEditIsDefect] = useState(true);
+  const [editIsSpecial, setEditIsSpecial] = useState(false);
   const [newParamName, setNewParamName] = useState('');
   const [newParamColor, setNewParamColor] = useState(PRESET_COLORS[0]);
   const [newFarm, setNewFarm] = useState('');
@@ -65,7 +66,7 @@ export function ParametersPage() {
   const handleSaveEdit = async () => {
     if (!editingParam || !editName.trim()) return;
     try {
-      await updateParameter(editingParam.id, editName.trim(), editColor, editIsDefect);
+      await updateParameter(editingParam.id, editName.trim(), editColor, editIsDefect, editIsSpecial);
       setEditingParam(null);
       setActionError('');
     } catch (err) {
@@ -151,7 +152,7 @@ export function ParametersPage() {
                       />
                     ))}
                   </div>
-                  <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                  <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={editIsDefect}
@@ -159,6 +160,15 @@ export function ParametersPage() {
                       className="w-5 h-5 rounded border-gray-300 text-red-500 focus:ring-red-500"
                     />
                     <span className="text-sm font-bold text-gray-700">Defect</span>
+                  </label>
+                  <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editIsSpecial}
+                      onChange={(e) => setEditIsSpecial(e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-purple-500 focus:ring-purple-500"
+                    />
+                    <span className="text-sm font-bold text-gray-700">Special (excluded from defect %)</span>
                   </label>
                   <div className="flex gap-2">
                     <button
@@ -189,15 +199,30 @@ export function ParametersPage() {
                     {param.name}
                     <button
                       onClick={async () => {
-                        await updateParameter(param.id, param.name, param.color, !param.isDefect);
+                        await updateParameter(param.id, param.name, param.color, !param.isDefect, param.isSpecial);
                       }}
                       className={param.isDefect 
                         ? 'text-[10px] uppercase font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-md hover:bg-red-200'
+                        : param.isSpecial
+                        ? 'text-[10px] uppercase font-bold bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-md hover:bg-purple-200'
                         : 'text-[10px] uppercase font-bold bg-green-100 text-green-600 px-1.5 py-0.5 rounded-md hover:bg-green-200'
                       }
                     >
-                      {param.isDefect ? 'Defect' : 'Free ✓'}
+                      {param.isDefect ? 'Defect' : param.isSpecial ? 'Special' : 'Free ✓'}
                     </button>
+                    {!param.isDefect && (
+                      <button
+                        onClick={async () => {
+                          await updateParameter(param.id, param.name, param.color, param.isDefect, !param.isSpecial);
+                        }}
+                        className={param.isSpecial
+                          ? 'text-[10px] uppercase font-bold bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-md hover:bg-purple-200'
+                          : 'text-[10px] uppercase font-bold bg-green-100 text-green-600 px-1.5 py-0.5 rounded-md hover:bg-green-200'
+                        }
+                      >
+                        {param.isSpecial ? 'Special' : 'Free ✓'}
+                      </button>
+                    )}
                   </span>
                   <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <button
@@ -206,6 +231,7 @@ export function ParametersPage() {
                         setEditName(param.name);
                         setEditColor(param.color);
                         setEditIsDefect(param.isDefect);
+                        setEditIsSpecial(param.isSpecial);
                       }}
                       className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                     >

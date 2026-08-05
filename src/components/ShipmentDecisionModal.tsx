@@ -25,7 +25,7 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
 
   if (!open) return null;
 
-  const defectParams = parameters.filter((p) => p.isDefect);
+  const defectParams = parameters.filter((p) => p.isDefect && !p.isSpecial);
 
   const toggleParam = (id: string) => {
     setSelectedParams((prev) => {

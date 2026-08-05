@@ -150,3 +150,4 @@ CREATE POLICY "anon_delete_shipitems" ON shipment_items FOR DELETE USING (true);
 ALTER TABLE inspections ADD COLUMN IF NOT EXISTS stock_id UUID REFERENCES stock(id) ON DELETE SET NULL;
 
 ALTER TABLE parameters ADD COLUMN IF NOT EXISTS is_defect BOOLEAN DEFAULT true;
+ALTER TABLE parameters ADD COLUMN IF NOT EXISTS is_special BOOLEAN DEFAULT false;

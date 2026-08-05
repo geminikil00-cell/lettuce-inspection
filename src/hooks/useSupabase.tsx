@@ -32,7 +32,7 @@ interface AppState {
 interface SupabaseContextType extends AppState {
   refresh: () => Promise<void>;
   addParameter: (name: string, color: string) => Promise<Parameter | null>;
-  updateParameter: (id: string, name: string, color: string, isDefect?: boolean) => Promise<void>;
+  updateParameter: (id: string, name: string, color: string, isDefect?: boolean, isSpecial?: boolean) => Promise<void>;
   deleteParameter: (id: string) => Promise<void>;
   addInspection: (inspection: Omit<Inspection, 'id' | 'createdAt'>) => Promise<Inspection | null>;
   updateInspection: (id: string, metadata: Omit<Inspection, 'id' | 'createdAt' | 'counts'>) => Promise<void>;
@@ -127,6 +127,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         name: p.name,
         color: p.color,
         isDefect: p.is_defect !== false,
+        isSpecial: p.is_special === true,
       }));
 
       const farmNames = (farmsRes.data as DbFarmName[]).map((f) => f.name);
@@ -211,15 +212,16 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         .single();
       if (error) throw error;
       await refresh();
-      return { id: data.id, name: data.name, color: data.color, isDefect: data.is_defect !== false };
+      return { id: data.id, name: data.name, color: data.color, isDefect: data.is_defect !== false, isSpecial: data.is_special === true };
     },
     [refresh],
   );
 
   const updateParameter = useCallback(
-    async (id: string, name: string, color: string, isDefect?: boolean) => {
-      const updateData: Record<string, any> = { name, color };
+    async (id: string, name: string, color: string, isDefect?: boolean, isSpecial?: boolean) => {
+      const updateData: Record<string, unknown> = { name, color };
       if (isDefect !== undefined) updateData.is_defect = isDefect;
+      if (isSpecial !== undefined) updateData.is_special = isSpecial;
       const { error } = await supabase
         .from('parameters')
         .update(updateData)

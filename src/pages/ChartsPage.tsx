@@ -25,7 +25,7 @@ export function ChartsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('30D');
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const defectParams = useMemo(() => parameters.filter((p) => p.isDefect), [parameters]);
+  const defectParams = useMemo(() => parameters.filter((p) => p.isDefect && !p.isSpecial), [parameters]);
 
   const chartData = useMemo(() => {
     if (!inspections.length || !defectParams.length) return [];
