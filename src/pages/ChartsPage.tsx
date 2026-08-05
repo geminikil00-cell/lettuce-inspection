@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
 import {
   LineChart,
@@ -11,7 +11,7 @@ import {
   Legend,
 } from 'recharts';
 import { subDays, subMonths, isAfter, parseISO, format } from 'date-fns';
-import { TrendingUp, AlertTriangle, Sprout } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Sprout, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +23,7 @@ export function ChartsPage() {
   const { t } = useTranslation();
   const [selectedFarm, setSelectedFarm] = useState<string>('ALL');
   const [timeRange, setTimeRange] = useState<TimeRange>('30D');
+  const chartRef = useRef<HTMLDivElement>(null);
 
   const defectParams = useMemo(() => parameters.filter((p) => p.isDefect), [parameters]);
 
@@ -96,6 +97,25 @@ export function ChartsPage() {
     return { name: top[0], value: avg };
   }, [chartData, defectParams]);
 
+  const exportJpg = async () => {
+    if (!chartRef.current) return;
+    const { toJpeg } = await import('html-to-image');
+    const dataUrl = await toJpeg(chartRef.current, {
+      quality: 0.95,
+      backgroundColor: '#ffffff',
+      width: chartRef.current.scrollWidth,
+      height: chartRef.current.scrollHeight,
+    });
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const filename = `Trend_${selectedFarm}_${format(new Date(), 'yyyy-MM-dd')}.jpg`;
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-4">
@@ -148,6 +168,12 @@ export function ChartsPage() {
               </button>
             ))}
           </div>
+          <button
+            onClick={exportJpg}
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 text-xs font-semibold rounded-xl hover:bg-blue-100 transition-colors shrink-0"
+          >
+            <ImageIcon className="w-4 h-4" />JPG
+          </button>
         </div>
       </div>
 
@@ -173,7 +199,7 @@ export function ChartsPage() {
         </div>
       </div>
 
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm">
+      <div ref={chartRef} className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div className="flex items-center gap-2 mb-6 text-gray-800 font-semibold">
           <TrendingUp className="w-5 h-5 text-green-600" />
           {t('Defect Percentage Per Batch')}
