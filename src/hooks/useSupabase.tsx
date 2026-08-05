@@ -245,13 +245,13 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     async (inspection: Omit<Inspection, 'id' | 'createdAt'>) => {
       let stockId = inspection.stockId || null;
 
-      if (!stockId) {
+      if (!stockId && inspection.plotName) {
         try {
           const { data: matchingStock } = await supabase
             .from('stock')
             .select('id')
             .eq('farm_name', inspection.farmName)
-            .eq('plot_name', inspection.plotName || '')
+            .eq('plot_name', inspection.plotName)
             .eq('receiving_date', inspection.receivingDate);
           if (matchingStock && matchingStock.length === 1) {
             const { data: linked } = await supabase

@@ -112,15 +112,8 @@ export function StockPage() {
 
   const unlinkedInspections = useMemo(() => {
     if (!linkingStockId) return [];
-    const stock = stockEntries.find((s) => s.id === linkingStockId);
-    if (!stock) return [];
-    return inspections.filter((i) =>
-      !i.stockId &&
-      i.farmName === stock.farmName &&
-      i.plotName === (stock.plotName || '') &&
-      i.receivingDate === stock.receivingDate
-    );
-  }, [linkingStockId, stockEntries, inspections]);
+    return inspections.filter((i) => !i.stockId);
+  }, [linkingStockId, inspections]);
 
   const availablePlots = newFarm ? (farmPlots[newFarm] || []) : [];
   const editAvailablePlots = editFarm ? (farmPlots[editFarm] || []) : [];
@@ -621,7 +614,7 @@ export function StockPage() {
               </div>
               <div className="p-4 overflow-y-auto flex-1">
                 {unlinkedInspections.length === 0 ? (
-                  <p className="text-center py-8 text-gray-500 font-medium">No matching inspections found</p>
+                  <p className="text-center py-8 text-gray-500 font-medium">{t('No unlinked inspections found')}</p>
                 ) : (
                   <div className="space-y-2">
                     {unlinkedInspections.map((insp) => {
@@ -636,8 +629,11 @@ export function StockPage() {
                           }}
                           className="w-full text-left bg-gray-50 rounded-xl p-3 hover:bg-green-50 border border-gray-100 hover:border-green-200 transition-all"
                         >
-                          <div className="font-bold text-gray-900">{insp.inspectorName}</div>
-                          <div className="text-sm text-gray-500">{total} heads</div>
+                          <div className="font-bold text-gray-900">{insp.farmName}{insp.plotName ? ` (${insp.plotName})` : ''}</div>
+                          <div className="flex items-center justify-between mt-0.5">
+                            <div className="text-sm text-gray-500">{insp.inspectorName} &middot; {insp.receivingDate}</div>
+                            <div className="text-sm font-bold text-gray-700">{total} heads</div>
+                          </div>
                         </button>
                       );
                     })}
