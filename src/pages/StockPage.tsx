@@ -153,7 +153,7 @@ export function StockPage() {
     setEditFarm(entry.farmName);
     setEditPlot(entry.plotName);
     setEditDate(entry.receivingDate);
-    setEditPallets(String(entry.available));
+    setEditPallets(String(entry.pallets));
   };
 
   // Dispatched tab grouping
