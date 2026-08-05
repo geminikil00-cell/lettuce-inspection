@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
+import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
 import { X, Plus, Minus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +20,8 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
   const [editing, setEditing] = useState(false);
   const [items, setItems] = useState<{ stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [showNameInput, setShowNameInput] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -29,6 +32,8 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
         receivingDate: i.receivingDate,
         pallets: i.pallets,
       })));
+      setEditName(shipment.name || '');
+      setShowNameInput(false);
       setEditing(false);
     }
   }, [open, shipment]);
@@ -126,12 +131,40 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
         className="bg-white w-full max-w-lg sm:rounded-[32px] rounded-t-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
       >
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 tracking-tight">
-              {shipment.name || t('Shipment Detail')}
-            </h2>
+          <div className="flex-1 min-w-0">
+            {showNameInput ? (
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onBlur={async () => {
+                  setShowNameInput(false);
+                  if (editName !== (shipment.name || '')) {
+                    await supabase.from('shipments').update({ name: editName }).eq('id', shipment.id);
+                  }
+                }}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') {
+                    setShowNameInput(false);
+                    if (editName !== (shipment.name || '')) {
+                      await supabase.from('shipments').update({ name: editName }).eq('id', shipment.id);
+                    }
+                  }
+                }}
+                autoFocus
+                className="w-full text-xl font-bold text-gray-900 tracking-tight bg-transparent border-b-2 border-green-500 outline-none"
+                placeholder={t('Shipment name')}
+              />
+            ) : (
+              <h2
+                className="text-xl font-bold text-gray-900 tracking-tight cursor-pointer hover:text-green-700"
+                onClick={() => setShowNameInput(true)}
+              >
+                {editName || t('Shipment Detail')}
+              </h2>
+            )}
             <p className="text-sm text-gray-500">
-              {format(dt, 'MMM d, yyyy')} — {format(dt, 'h:mm a')}
+              {format(dt, 'MMM d, yyyy')} &mdash; {format(dt, 'h:mm a')}
             </p>
           </div>
           <button
