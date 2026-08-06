@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function DispatchModal({ stockEntries, open, onClose }: Props) {
-  const { shipments, addShipment } = useSupabase();
+  const { shipments, inspections, parameters, addShipment } = useSupabase();
   const { t } = useTranslation();
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,6 +32,26 @@ export function DispatchModal({ stockEntries, open, onClose }: Props) {
       })
       .filter((e) => e.available > 0);
   }, [stockEntries, shipments]);
+
+  const defectsByStockId = useMemo(() => {
+    const map: Record<string, { total: number; defects: { name: string; color: string; pct: number }[] } | null> = {};
+    const defectParams = parameters.filter(p => p.isDefect && !p.isSpecial);
+    inspections.forEach(i => {
+      if (i.stockId) {
+        const t = Object.values(i.counts).reduce((a, b) => a + b, 0);
+        if (t === 0) { map[i.stockId] = null; return; }
+        map[i.stockId] = {
+          total: t,
+          defects: defectParams.map(p => ({
+            name: p.name,
+            color: p.color,
+            pct: (i.counts[p.id] || 0) / t * 100,
+          })).filter(d => d.pct > 0),
+        };
+      }
+    });
+    return map;
+  }, [inspections, parameters]);
 
   const [selections, setSelections] = useState<Record<string, number>>({});
   const [shipmentName, setShipmentName] = useState('');
@@ -146,6 +166,18 @@ export function DispatchModal({ stockEntries, open, onClose }: Props) {
                         <div className="text-sm text-gray-500 font-medium">
                           {entry.receivingDate} — {t('Available')}: {entry.available} {t('Pallets')}
                         </div>
+                        {defectsByStockId[entry.id] && defectsByStockId[entry.id]!.defects.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {defectsByStockId[entry.id]!.defects.map(d => (
+                              <span key={d.name} className="text-[10px] font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: d.color }}>
+                                {d.name} {d.pct.toFixed(0)}%
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {entry.id in defectsByStockId && defectsByStockId[entry.id] === null && (
+                          <span className="text-[10px] text-gray-400 mt-1">{t('Not inspected')}</span>
+                        )}
                       </button>
                       {qty > 0 && (
                         <div className="flex items-center gap-2 ml-3">
