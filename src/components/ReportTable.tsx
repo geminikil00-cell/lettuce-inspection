@@ -271,13 +271,6 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
                   <td className="py-4 text-end font-black text-gray-900 text-xl">{total}</td>
                   <td className="py-4 text-end font-bold text-gray-900">100%</td>
                 </tr>
-                {specialTotal > 0 && (
-                  <tr>
-                    <td className="py-2 font-black text-purple-600 text-sm">{t('SPECIAL')}</td>
-                    <td className="py-2 text-end font-black text-purple-600">{specialTotal}</td>
-                    <td className="py-2 text-end font-bold text-purple-600">{total > 0 ? ((specialTotal / total) * 100).toFixed(1) : '0'}%</td>
-                  </tr>
-                )}
                 <tr>
                   <td className="py-2 font-black text-red-600 text-sm">{t('TOTAL DEFECTS')}</td>
                   <td className="py-2 text-end font-black text-red-600">{defectTotal}</td>
