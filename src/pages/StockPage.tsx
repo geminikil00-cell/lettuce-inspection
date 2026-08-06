@@ -434,10 +434,10 @@ export function StockPage() {
 
                         return (
                           <motion.tr key={entry.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="hover:bg-gray-50/50">
-                            <td className="py-3 px-3 font-semibold text-gray-900 max-w-[120px] truncate sticky left-0 bg-white">
+                            <td className="py-3 px-3 font-semibold text-gray-900 sticky left-0 bg-white whitespace-nowrap">
                               <button
                                 onClick={() => linkedInspection && setViewingInspection(linkedInspection)}
-                                className={linkedInspection ? 'hover:text-green-700 cursor-pointer truncate block max-w-full' : 'cursor-default truncate block max-w-full'}
+                                className={linkedInspection ? 'hover:text-green-700 cursor-pointer' : 'cursor-default'}
                               >
                                 {entry.farmName}{entry.plotName ? ` (${entry.plotName})` : ''}
                               </button>
