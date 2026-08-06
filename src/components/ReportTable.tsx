@@ -74,8 +74,6 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
     .filter(([pid]) => paramMap.get(pid)?.isSpecial)
     .reduce((sum, [, c]) => sum + c, 0);
 
-  const effectiveTotal = total - specialTotal;
-
   const defectTotal = Object.entries(inspection.counts)
     .filter(([pid]) => {
       const p = paramMap.get(pid);
@@ -83,7 +81,8 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
     })
     .reduce((sum, [, c]) => sum + c, 0);
 
-  const defectPct = effectiveTotal > 0 ? ((defectTotal / effectiveTotal) * 100).toFixed(1) : '0';
+  const freeTotal = total - defectTotal - specialTotal;
+  const defectPct = (freeTotal + specialTotal) > 0 ? ((defectTotal / (freeTotal + specialTotal)) * 100).toFixed(1) : '0';
 
   const submittedIso = inspection.submittedAt || inspection.createdAt;
   const submittedDate = format(new Date(submittedIso), 'MMM d, yyyy');
