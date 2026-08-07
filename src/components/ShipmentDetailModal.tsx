@@ -77,20 +77,35 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
   };
 
   const handleAddStock = (entry: StockEntry) => {
-    const maxAvail = getAvailable(entry.id);
-    if (maxAvail <= 0) return;
-    setItems((prev) => [...prev, {
-      stockId: entry.id,
-      farmName: entry.farmName,
-      plotName: entry.plotName,
-      receivingDate: entry.receivingDate,
-      pallets: 1,
-    }]);
+    const existingIdx = items.findIndex((i) => i.stockId === entry.id);
+    if (existingIdx >= 0) {
+      const maxAvail = getAvailable(entry.id);
+      if (maxAvail <= 1) return;
+      setItems((prev) => {
+        const next = [...prev];
+        next[existingIdx] = { ...next[existingIdx], pallets: Math.min(next[existingIdx].pallets + 1, maxAvail) };
+        return next;
+      });
+    } else {
+      const maxAvail = getAvailable(entry.id);
+      if (maxAvail <= 0) return;
+      setItems((prev) => [...prev, {
+        stockId: entry.id,
+        farmName: entry.farmName,
+        plotName: entry.plotName,
+        receivingDate: entry.receivingDate,
+        pallets: 1,
+      }]);
+    }
   };
 
   const addableStock = useMemo(() => {
-    return stockEntries.filter((entry) => getAvailable(entry.id) > 0);
-  }, [stockEntries]);
+    return stockEntries.filter((entry) => {
+      const existing = items.find((i) => i.stockId === entry.id);
+      if (existing) return getAvailable(entry.id) > existing.pallets;
+      return getAvailable(entry.id) > 0;
+    });
+  }, [stockEntries, items]);
 
   const handleSave = async () => {
     setSubmitting(true);

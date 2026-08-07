@@ -61,7 +61,7 @@ export function StockPage() {
 
   useEffect(() => {
     setVisibleParams(new Set(defectParams.map(p => p.id)));
-  }, [defectParams.length]);
+  }, [defectParams]);
 
   const toggleParam = (id: string) => {
     setVisibleParams(prev => {

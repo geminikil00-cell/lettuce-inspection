@@ -522,7 +522,19 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   const updateShipmentItems = useCallback(
     async (shipmentId: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => {
       await supabase.from('shipment_items').delete().eq('shipment_id', shipmentId);
-      const itemRows = items.map((item) => ({
+
+      const merged = new Map<string, { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }>();
+      items.forEach((item) => {
+        const key = item.stockId || `${item.farmName}_${item.plotName}_${item.receivingDate}`;
+        const existing = merged.get(key);
+        if (existing) {
+          existing.pallets += item.pallets;
+        } else {
+          merged.set(key, { ...item });
+        }
+      });
+
+      const itemRows = [...merged.values()].map((item) => ({
         shipment_id: shipmentId,
         stock_id: item.stockId || null,
         farm_name: item.farmName,
