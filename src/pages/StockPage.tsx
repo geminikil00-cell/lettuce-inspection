@@ -223,12 +223,12 @@ export function StockPage() {
       rows.push([
         e.farmName + (e.plotName ? ` (${e.plotName})` : ''),
         e.receivingDate,
-        e.available,
+        e.pallets,
         ...paramCounts,
       ]);
     });
     rows.push([]);
-    rows.push([t('Total'), '', availableStock.reduce((sum, e) => sum + e.available, 0), ...defectParams.map(() => '')]);
+    rows.push([t('Total'), '', availableStock.reduce((sum, e) => sum + e.pallets, 0), ...defectParams.map(() => '')]);
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 12 }, ...defectParams.map(() => ({ wch: 10 }))];
     const wb = XLSX.utils.book_new();
@@ -443,7 +443,12 @@ export function StockPage() {
                               </button>
                             </td>
                             <td className="py-3 px-3 text-gray-500 font-medium text-xs">{entry.receivingDate}</td>
-                            <td className="py-3 px-3 text-end font-bold text-gray-900">{entry.available}</td>
+                            <td className="py-3 px-3 text-end">
+                              <div className="font-bold text-gray-900">{entry.pallets}</div>
+                              {(dispatchedMap[entry.id] || 0) > 0 && (
+                                <div className="text-[10px] text-gray-400 font-medium">{dispatchedMap[entry.id]} {t('Dispatched')}</div>
+                              )}
+                            </td>
                             {visibleParamsList.map((p) => {
                               const count = linkedInspection ? (linkedInspection.counts[p.id] || 0) : null;
                               const total = linkedInspection ? Object.values(linkedInspection.counts).reduce((a, b) => a + b, 0) : 0;
@@ -501,7 +506,7 @@ export function StockPage() {
                     <tr className="border-t-2 border-gray-900 bg-gray-50/50">
                       <td className="py-3 px-3 font-black text-gray-900 text-sm sticky left-0 bg-gray-50/50">{t('Total')}</td>
                       <td></td>
-                      <td className="py-3 px-3 text-end font-black text-gray-900 text-lg">{availableStock.reduce((sum, e) => sum + e.available, 0)}</td>
+                      <td className="py-3 px-3 text-end font-black text-gray-900 text-lg">{availableStock.reduce((sum, e) => sum + e.pallets, 0)}</td>
                       {visibleParamsList.map((p) => (
                         <td key={p.id}></td>
                       ))}
