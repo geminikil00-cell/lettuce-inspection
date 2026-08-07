@@ -540,16 +540,21 @@ export function StockPage() {
             </div>
           ) : (
             <>
-              <div className="flex gap-2 mb-2 overflow-x-auto pb-2 scrollbar-hide">
-                {dateKeys.map((key) => {
-                  const count = groupedShipments.get(key)!.length;
-                  const isActive = key === effectiveDate;
-                  return (
-                    <button key={key} onClick={() => setSelectedDate(key)} className={`shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-colors ${isActive ? 'bg-gray-900 text-white shadow-lg shadow-gray-900/20' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                      {getDateLabel(key)}<span className={`ml-1.5 text-xs ${isActive ? 'text-gray-300' : 'text-gray-400'}`}>{count}</span>
-                    </button>
-                  );
-                })}
+              <div className="flex items-center gap-2 mb-3">
+                <select
+                  value={effectiveDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="appearance-none w-full sm:w-auto pl-4 pr-10 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm"
+                >
+                  {dateKeys.map((key) => {
+                    const count = groupedShipments.get(key)!.length;
+                    return (
+                      <option key={key} value={key}>
+                        {getDateLabel(key)} ({count})
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
               <AnimatePresence>
                 {filteredShipments.map((s, idx) => {
