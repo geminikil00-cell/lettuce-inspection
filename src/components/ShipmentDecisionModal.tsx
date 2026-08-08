@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function ShipmentDecisionModal({ open, onClose }: Props) {
-  const { stockEntries, shipments, inspections, parameters } = useSupabase();
+  const { stockEntries, shipments, inspections, parameters, addShipment } = useSupabase();
   const { t } = useTranslation();
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -22,6 +22,8 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
   const [maxStocksPerShipment, setMaxStocksPerShipment] = useState(4);
 
   const [result, setResult] = useState<OptimizationResult | null>(null);
+  const [dispatching, setDispatching] = useState(false);
+  const [dispatchError, setDispatchError] = useState('');
 
   if (!open) return null;
 
@@ -60,6 +62,53 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
     };
 
     setResult(optimizeShipments(available, inspections, parameters, params));
+  };
+
+  const handleDispatch = async (planIdx: number) => {
+    if (!result) return;
+    setDispatching(true);
+    setDispatchError('');
+    try {
+      const plan = result.shipments[planIdx];
+      const items = plan.items.map((item) => ({
+        stockId: item.stock.id,
+        farmName: item.stock.farmName,
+        plotName: item.stock.plotName,
+        receivingDate: item.stock.receivingDate,
+        pallets: item.stock.pallets,
+      }));
+      await addShipment(`Shipment #${planIdx + 1}`, items);
+      const newShipments = result.shipments.filter((_, i) => i !== planIdx);
+      setResult(newShipments.length > 0 ? { shipments: newShipments, overflow: result.overflow } : null);
+    } catch (err) {
+      setDispatchError(err instanceof Error ? err.message : 'Failed to dispatch');
+    } finally {
+      setDispatching(false);
+    }
+  };
+
+  const handleDispatchAll = async () => {
+    if (!result) return;
+    setDispatching(true);
+    setDispatchError('');
+    try {
+      for (let i = 0; i < result.shipments.length; i++) {
+        const plan = result.shipments[i];
+        const items = plan.items.map((item) => ({
+          stockId: item.stock.id,
+          farmName: item.stock.farmName,
+          plotName: item.stock.plotName,
+          receivingDate: item.stock.receivingDate,
+          pallets: item.stock.pallets,
+        }));
+        await addShipment(`Shipment #${i + 1}`, items);
+      }
+      setResult(null);
+    } catch (err) {
+      setDispatchError(err instanceof Error ? err.message : 'Failed to dispatch');
+    } finally {
+      setDispatching(false);
+    }
   };
 
   const handleReset = () => {
@@ -287,6 +336,11 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
                               {item.daysStored}d
                             </span>
                           )}
+                          {!item.hasInspection && (
+                            <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-1 py-0.5 rounded ml-1">
+                              {t('Not inspected')}
+                            </span>
+                          )}
                         </div>
                         <span className="font-bold text-gray-900">{item.stock.pallets}</span>
                       </div>
@@ -313,13 +367,42 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
                 </div>
               )}
 
-              <div className="flex gap-2 pt-2">
-                <button onClick={exportJpg} className="flex-1 py-3 bg-blue-50 text-blue-700 font-bold rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
-                  <ImageIcon className="w-4 h-4" />JPG
-                </button>
-                <button onClick={exportExcel} className="flex-1 py-3 bg-emerald-50 text-emerald-700 font-bold rounded-xl hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2">
-                  <FileSpreadsheet className="w-4 h-4" />Excel
-                </button>
+              {dispatchError && (
+                <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium rounded-xl p-3">
+                  {dispatchError}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 pt-2">
+                <div className="flex gap-2">
+                  {result.shipments.map((_s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleDispatch(i)}
+                      disabled={dispatching}
+                      className="flex-1 py-3 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 disabled:opacity-50 transition-colors text-sm"
+                    >
+                      {t('Dispatch')} #{i + 1}
+                    </button>
+                  ))}
+                </div>
+                {result.shipments.length > 1 && (
+                  <button
+                    onClick={handleDispatchAll}
+                    disabled={dispatching}
+                    className="w-full py-3 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                  >
+                    {dispatching ? t('Dispatching...') : t('Dispatch All Shipments')}
+                  </button>
+                )}
+                <div className="flex gap-2">
+                  <button onClick={exportJpg} className="flex-1 py-3 bg-blue-50 text-blue-700 font-bold rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
+                    <ImageIcon className="w-4 h-4" />JPG
+                  </button>
+                  <button onClick={exportExcel} className="flex-1 py-3 bg-emerald-50 text-emerald-700 font-bold rounded-xl hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2">
+                    <FileSpreadsheet className="w-4 h-4" />Excel
+                  </button>
+                </div>
               </div>
             </div>
           )}

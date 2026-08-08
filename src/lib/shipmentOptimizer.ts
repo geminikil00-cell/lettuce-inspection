@@ -2,7 +2,8 @@ import type { StockEntry, Inspection, Parameter } from '../types';
 
 export interface StockWithScores {
   stock: StockEntry;
-  inspection: Inspection;
+  inspection: Inspection | null;
+  hasInspection: boolean;
   totalHeads: number;
   goodPct: number;
   defectPcts: Record<string, number>;
@@ -30,10 +31,12 @@ export interface OptimizationResult {
 
 function computeAvg(items: StockWithScores[], paramId: string): number {
   if (items.length === 0) return 0;
+  const totalPallets = items.reduce((sum, s) => sum + s.stock.pallets, 0);
+  if (totalPallets === 0) return 0;
   if (paramId === '__quality__') {
-    return items.reduce((sum, s) => sum + s.goodPct, 0) / items.length;
+    return items.reduce((sum, s) => sum + s.goodPct * s.stock.pallets, 0) / totalPallets;
   }
-  return items.reduce((sum, s) => sum + (s.defectPcts[paramId] || 0), 0) / items.length;
+  return items.reduce((sum, s) => sum + (s.defectPcts[paramId] || 0) * s.stock.pallets, 0) / totalPallets;
 }
 
 function computeBalanceScore(
@@ -45,21 +48,30 @@ function computeBalanceScore(
 ): number {
   const sim = shipments.map((s) => ({ items: [...s.items], totalPallets: s.totalPallets }));
   sim[shipIdx].items.push(candidate);
+  sim[shipIdx].totalPallets += candidate.stock.pallets;
+
+  const nonEmpty = sim.map((s, i) => i === shipIdx || s.items.length > 0);
 
   let totalVariance = 0;
   for (const paramId of selectedParams) {
-    const averages = sim.map((s) => computeAvg(s.items, paramId));
     const weightedAvg =
-      averages.reduce((sum, a, i) => sum + a * sim[i].items.length, 0) /
-      Math.max(1, sim.reduce((sum, s) => sum + s.items.length, 0));
-    const variance =
-      averages.reduce((sum, a) => sum + (a - weightedAvg) ** 2, 0) /
-      Math.max(1, averages.length);
-    totalVariance += variance;
+      sim.reduce((sum, s, i) => nonEmpty[i] ? sum + computeAvg(s.items, paramId) * s.items.length : sum, 0) /
+      Math.max(1, sim.reduce((sum, s, i) => nonEmpty[i] ? sum + s.items.length : sum, 0));
+
+    let varianceSum = 0;
+    let varianceCount = 0;
+    for (let i = 0; i < sim.length; i++) {
+      if (!nonEmpty[i]) continue;
+      const a = computeAvg(sim[i].items, paramId);
+      varianceSum += (a - weightedAvg) ** 2;
+      varianceCount++;
+    }
+    totalVariance += varianceCount > 1 ? varianceSum / varianceCount : 0;
   }
 
   const filledRatio = sim[shipIdx].totalPallets / palletsPerShipment;
-  return -totalVariance + filledRatio * 0.1;
+  const normalizedVariance = totalVariance / Math.max(1, selectedParams.length);
+  return -normalizedVariance + filledRatio * 50;
 }
 
 export function optimizeShipments(
@@ -75,30 +87,42 @@ export function optimizeShipments(
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
+  const goodParam = parameters.find((p) => !p.isDefect);
+
   const scored: StockWithScores[] = [];
   for (const stock of stockEntries) {
     const inspection = inspectionMap.get(stock.id);
-    if (!inspection) continue;
 
-    const totalHeads = Object.values(inspection.counts).reduce((a, b) => a + b, 0);
-    const goodCount = inspection.counts[
-      parameters.find((p) => p.name.toLowerCase() === 'good')?.id || ''
-    ] || 0;
-    const goodPct = totalHeads > 0 ? (goodCount / totalHeads) * 100 : 100;
-
+    let totalHeads = 0;
+    let goodPct = 100;
     const defectPcts: Record<string, number> = {};
+
     parameters
       .filter((p) => p.isDefect && !p.isSpecial)
       .forEach((p) => {
-        defectPcts[p.id] = totalHeads > 0 ? ((inspection.counts[p.id] || 0) / totalHeads) * 100 : 0;
+        defectPcts[p.id] = 0;
       });
+
+    if (inspection) {
+      totalHeads = Object.values(inspection.counts).reduce((a, b) => a + b, 0);
+      if (totalHeads > 0) {
+        const goodCount = goodParam ? (inspection.counts[goodParam.id] || 0) : 0;
+        goodPct = (goodCount / totalHeads) * 100;
+        parameters
+          .filter((p) => p.isDefect && !p.isSpecial)
+          .forEach((p) => {
+            defectPcts[p.id] = ((inspection.counts[p.id] || 0) / totalHeads) * 100;
+          });
+      }
+    }
 
     const received = new Date(stock.receivingDate + 'T00:00:00');
     const daysStored = Math.floor((now.getTime() - received.getTime()) / (1000 * 60 * 60 * 24));
 
     scored.push({
       stock,
-      inspection,
+      inspection: inspection || null,
+      hasInspection: !!inspection,
       totalHeads,
       goodPct,
       defectPcts,
@@ -106,7 +130,9 @@ export function optimizeShipments(
     });
   }
 
-  const overdue = scored.filter((s) => s.daysStored >= params.storageTimeDays);
+  const overdue = scored
+    .filter((s) => s.daysStored >= params.storageTimeDays)
+    .sort((a, b) => b.daysStored - a.daysStored);
   const fresh = scored
     .filter((s) => s.daysStored < params.storageTimeDays)
     .sort((a, b) => a.stock.receivingDate.localeCompare(b.stock.receivingDate));
@@ -123,6 +149,7 @@ export function optimizeShipments(
   for (const stock of sorted) {
     let bestIdx = -1;
     let bestScore = -Infinity;
+    let bestPallets = Infinity;
 
     for (let i = 0; i < shipments.length; i++) {
       const s = shipments[i];
@@ -137,9 +164,10 @@ export function optimizeShipments(
         params.palletsPerShipment,
       );
 
-      if (score > bestScore) {
+      if (score > bestScore || (score === bestScore && shipments[i].totalPallets < bestPallets)) {
         bestScore = score;
         bestIdx = i;
+        bestPallets = shipments[i].totalPallets;
       }
     }
 
@@ -151,11 +179,13 @@ export function optimizeShipments(
     }
   }
 
-  const plans: ShipmentPlan[] = shipments.map((s) => ({
-    items: s.items,
-    totalPallets: s.totalPallets,
-    paramAverages: computeParamAverages(s.items, params),
-  }));
+  const plans: ShipmentPlan[] = shipments
+    .filter((s) => s.items.length > 0)
+    .map((s) => ({
+      items: s.items,
+      totalPallets: s.totalPallets,
+      paramAverages: computeParamAverages(s.items, params),
+    }));
 
   return { shipments: plans, overflow };
 }
