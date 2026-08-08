@@ -134,18 +134,26 @@ export function StockPage() {
 
   const handleUpdateStock = async () => {
     if (!editingStock || !editFarm || !editDate || !editPallets) return;
-    await updateStock(editingStock.id, {
-      farmName: editFarm,
-      plotName: editPlot,
-      receivingDate: editDate,
-      pallets: parseInt(editPallets, 10),
-    });
-    setEditingStock(null);
+    try {
+      await updateStock(editingStock.id, {
+        farmName: editFarm,
+        plotName: editPlot,
+        receivingDate: editDate,
+        pallets: parseInt(editPallets, 10),
+      });
+      setEditingStock(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update stock');
+    }
   };
 
   const handleDeleteStock = async (id: string) => {
     if (!window.confirm('Delete this stock entry?')) return;
-    await deleteStock(id);
+    try {
+      await deleteStock(id);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete stock');
+    }
   };
 
   const startEdit = (entry: EnrichedStock) => {
@@ -223,12 +231,12 @@ export function StockPage() {
       rows.push([
         e.farmName + (e.plotName ? ` (${e.plotName})` : ''),
         e.receivingDate,
-        e.pallets,
+        e.available,
         ...paramCounts,
       ]);
     });
     rows.push([]);
-    rows.push([t('Total'), '', availableStock.reduce((sum, e) => sum + e.pallets, 0), ...defectParams.map(() => '')]);
+    rows.push([t('Total'), '', availableStock.reduce((sum, e) => sum + e.available, 0), ...defectParams.map(() => '')]);
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 12 }, ...defectParams.map(() => ({ wch: 10 }))];
     const wb = XLSX.utils.book_new();
@@ -444,9 +452,9 @@ export function StockPage() {
                             </td>
                             <td className="py-3 px-3 text-gray-500 font-medium text-xs">{entry.receivingDate}</td>
                             <td className="py-3 px-3 text-end">
-                              <div className="font-bold text-gray-900">{entry.pallets}</div>
-                              {(dispatchedMap[entry.id] || 0) > 0 && (
-                                <div className="text-[10px] text-gray-400 font-medium">{dispatchedMap[entry.id]} {t('Dispatched')}</div>
+                              <div className="font-bold text-gray-900">{entry.available}</div>
+                              {entry.available < entry.pallets && (
+                                <div className="text-[10px] text-gray-400 font-medium">{t('of')} {entry.pallets} {t('total')}</div>
                               )}
                             </td>
                             {visibleParamsList.map((p) => {
@@ -506,7 +514,7 @@ export function StockPage() {
                     <tr className="border-t-2 border-gray-900 bg-gray-50/50">
                       <td className="py-3 px-3 font-black text-gray-900 text-sm sticky left-0 bg-gray-50/50">{t('Total')}</td>
                       <td></td>
-                      <td className="py-3 px-3 text-end font-black text-gray-900 text-lg">{availableStock.reduce((sum, e) => sum + e.pallets, 0)}</td>
+                      <td className="py-3 px-3 text-end font-black text-gray-900 text-lg">{availableStock.reduce((sum, e) => sum + e.available, 0)}</td>
                       {visibleParamsList.map((p) => (
                         <td key={p.id}></td>
                       ))}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
 import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: Props) {
-  const { shipments, updateShipmentItems, deleteShipment } = useSupabase();
+  const { shipments, updateShipmentItems, deleteShipment, refresh } = useSupabase();
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [items, setItems] = useState<{ stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]>([]);
@@ -50,24 +50,31 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
     });
   });
 
-  const getAvailable = (stockId: string | undefined) => {
-    if (!stockId) return Infinity;
-    const entry = stockEntries.find((s) => s.id === stockId);
-    if (!entry) return 0;
-    const dispatched = dispatchedMap[stockId] || 0;
-    const inThisShipment = items
-      .filter((i) => i.stockId === stockId)
-      .reduce((sum, i) => sum + i.pallets, 0);
-    return entry.pallets - dispatched + inThisShipment;
-  };
+  const stockAvailableMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    stockEntries.forEach((entry) => {
+      map[entry.id] = entry.pallets - (dispatchedMap[entry.id] || 0);
+    });
+    return map;
+  }, [stockEntries, dispatchedMap]);
+
+  const getAvailable = useCallback((stockId: string | undefined) => {
+    if (!stockId) return 0;
+    return stockAvailableMap[stockId] ?? 0;
+  }, [stockAvailableMap]);
 
   const totalPallets = items.reduce((sum, i) => sum + i.pallets, 0);
 
   const handleQtyChange = (idx: number, delta: number) => {
     setItems((prev) => {
       const next = [...prev];
-      const maxAvail = getAvailable(next[idx].stockId);
-      next[idx] = { ...next[idx], pallets: Math.max(0, Math.min(next[idx].pallets + delta, maxAvail)) };
+      const item = next[idx];
+      const maxForStock = getAvailable(item.stockId);
+      const othersUsing = prev
+        .filter((it, i) => i !== idx && it.stockId === item.stockId)
+        .reduce((sum, it) => sum + it.pallets, 0);
+      const maxForThis = Math.max(0, maxForStock - othersUsing);
+      next[idx] = { ...next[idx], pallets: Math.max(0, Math.min(item.pallets + delta, maxForThis)) };
       return next;
     });
   };
@@ -79,16 +86,20 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
   const handleAddStock = (entry: StockEntry) => {
     const existingIdx = items.findIndex((i) => i.stockId === entry.id);
     if (existingIdx >= 0) {
-      const maxAvail = getAvailable(entry.id);
-      if (maxAvail <= 1) return;
+      const maxForStock = getAvailable(entry.id);
       setItems((prev) => {
         const next = [...prev];
-        next[existingIdx] = { ...next[existingIdx], pallets: Math.min(next[existingIdx].pallets + 1, maxAvail) };
+        const othersUsing = prev
+          .filter((it, i) => i !== existingIdx && it.stockId === entry.id)
+          .reduce((sum, it) => sum + it.pallets, 0);
+        const maxForThis = Math.max(0, maxForStock - othersUsing);
+        if (next[existingIdx].pallets >= maxForThis) return prev;
+        next[existingIdx] = { ...next[existingIdx], pallets: Math.min(next[existingIdx].pallets + 1, maxForThis) };
         return next;
       });
     } else {
-      const maxAvail = getAvailable(entry.id);
-      if (maxAvail <= 0) return;
+      const maxForStock = getAvailable(entry.id);
+      if (maxForStock <= 0) return;
       setItems((prev) => [...prev, {
         stockId: entry.id,
         farmName: entry.farmName,
@@ -101,11 +112,18 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
 
   const addableStock = useMemo(() => {
     return stockEntries.filter((entry) => {
+      const maxForStock = stockAvailableMap[entry.id] ?? 0;
+      if (maxForStock <= 0) return false;
       const existing = items.find((i) => i.stockId === entry.id);
-      if (existing) return getAvailable(entry.id) > existing.pallets;
-      return getAvailable(entry.id) > 0;
+      if (existing) {
+        const othersUsing = items
+          .filter((it) => it.stockId === entry.id && it !== existing)
+          .reduce((sum, it) => sum + it.pallets, 0);
+        return existing.pallets < maxForStock - othersUsing;
+      }
+      return true;
     });
-  }, [stockEntries, items]);
+  }, [stockEntries, items, stockAvailableMap]);
 
   const handleSave = async () => {
     setSubmitting(true);
@@ -156,6 +174,7 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
                   setShowNameInput(false);
                   if (editName !== (shipment.name || '')) {
                     await supabase.from('shipments').update({ name: editName }).eq('id', shipment.id);
+                    await refresh();
                   }
                 }}
                 onKeyDown={async (e) => {
@@ -163,6 +182,7 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
                     setShowNameInput(false);
                     if (editName !== (shipment.name || '')) {
                       await supabase.from('shipments').update({ name: editName }).eq('id', shipment.id);
+                      await refresh();
                     }
                   }
                 }}

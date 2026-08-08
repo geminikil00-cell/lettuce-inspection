@@ -462,6 +462,15 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
 
   const updateStock = useCallback(
     async (id: string, data: { farmName: string; plotName: string; receivingDate: string; pallets: number }) => {
+      const { data: items, error: fetchErr } = await supabase
+        .from('shipment_items')
+        .select('pallets')
+        .eq('stock_id', id);
+      if (fetchErr) throw fetchErr;
+      const dispatched = (items || []).reduce((sum: number, i: any) => sum + i.pallets, 0);
+      if (data.pallets < dispatched) {
+        throw new Error(`Cannot reduce stock below ${dispatched} dispatched pallets`);
+      }
       const { error } = await supabase
         .from('stock')
         .update({
@@ -479,6 +488,15 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
 
   const deleteStock = useCallback(
     async (id: string) => {
+      const { data: refs, error: checkErr } = await supabase
+        .from('shipment_items')
+        .select('id')
+        .eq('stock_id', id)
+        .limit(1);
+      if (checkErr) throw checkErr;
+      if (refs && refs.length > 0) {
+        throw new Error('Cannot delete stock that has dispatched pallets. Delete the shipments first.');
+      }
       const { error } = await supabase.from('stock').delete().eq('id', id);
       if (error) throw error;
       await refresh();
@@ -488,6 +506,38 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
 
   const addShipment = useCallback(
     async (name: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => {
+      const stockIds = [...new Set(items.map((i) => i.stockId).filter(Boolean))];
+
+      if (stockIds.length > 0) {
+        const [{ data: stockRows, error: stockErr }, { data: dispRows, error: dispErr }] = await Promise.all([
+          supabase.from('stock').select('id, pallets').in('id', stockIds),
+          supabase.from('shipment_items').select('stock_id, pallets').in('stock_id', stockIds),
+        ]);
+        if (stockErr) throw stockErr;
+        if (dispErr) throw dispErr;
+
+        const stockPallets = new Map<string, number>();
+        (stockRows || []).forEach((s: any) => stockPallets.set(s.id, s.pallets));
+
+        const dispSum = new Map<string, number>();
+        (dispRows || []).forEach((d: any) => {
+          dispSum.set(d.stock_id, (dispSum.get(d.stock_id) || 0) + d.pallets);
+        });
+
+        for (const item of items) {
+          if (!item.stockId) continue;
+          const total = stockPallets.get(item.stockId);
+          if (total === undefined) throw new Error(`Stock entry not found for ${item.farmName}`);
+          const dispatched = dispSum.get(item.stockId) || 0;
+          const available = total - dispatched;
+          if (item.pallets > available) {
+            throw new Error(
+              `Not enough stock for ${item.farmName}${item.plotName ? ` (${item.plotName})` : ''}: ${available} available, ${item.pallets} requested`,
+            );
+          }
+        }
+      }
+
       const { data, error } = await supabase
         .from('shipments')
         .insert({ name, dispatched_at: new Date().toISOString() })
@@ -521,20 +571,31 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
 
   const updateShipmentItems = useCallback(
     async (shipmentId: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => {
-      await supabase.from('shipment_items').delete().eq('shipment_id', shipmentId);
+      const { data: existing, error: fetchErr } = await supabase
+        .from('shipment_items')
+        .select('id, stock_id')
+        .eq('shipment_id', shipmentId);
+      if (fetchErr) throw fetchErr;
 
-      const merged = new Map<string, { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }>();
-      items.forEach((item) => {
-        const key = item.stockId || `${item.farmName}_${item.plotName}_${item.receivingDate}`;
-        const existing = merged.get(key);
-        if (existing) {
-          existing.pallets += item.pallets;
-        } else {
-          merged.set(key, { ...item });
-        }
+      const existingByStockId = new Map<string, string>();
+      (existing || []).forEach((e: any) => {
+        if (e.stock_id) existingByStockId.set(e.stock_id, e.id);
       });
 
+      const merged = new Map<string, { id?: string; stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }>();
+      for (const item of items) {
+        const key = item.stockId || `__new__${crypto.randomUUID()}`;
+        const existingId = item.stockId ? existingByStockId.get(item.stockId) : undefined;
+        const mItem = merged.get(key);
+        if (mItem) {
+          mItem.pallets += item.pallets;
+        } else {
+          merged.set(key, { id: existingId, ...item });
+        }
+      }
+
       const itemRows = [...merged.values()].map((item) => ({
+        id: item.id,
         shipment_id: shipmentId,
         stock_id: item.stockId || null,
         farm_name: item.farmName,
@@ -542,8 +603,22 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         receiving_date: item.receivingDate,
         pallets: item.pallets,
       }));
-      const { error } = await supabase.from('shipment_items').insert(itemRows);
-      if (error) throw error;
+
+      const { error: upsertErr } = await supabase.from('shipment_items').upsert(itemRows);
+      if (upsertErr) throw upsertErr;
+
+      const keptStockIds = new Set(
+        [...merged.values()].filter((m) => m.id).map((m) => m.stockId)
+      );
+      const toDelete = [...existingByStockId.entries()]
+        .filter(([stockId]) => !keptStockIds.has(stockId))
+        .map(([, id]) => id);
+
+      if (toDelete.length > 0) {
+        const { error: delErr } = await supabase.from('shipment_items').delete().in('id', toDelete);
+        if (delErr) throw delErr;
+      }
+
       await refresh();
     },
     [refresh],
