@@ -81,8 +81,7 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
     })
     .reduce((sum, [, c]) => sum + c, 0);
 
-  const freeTotal = total - defectTotal - specialTotal;
-  const defectPct = (freeTotal + specialTotal) > 0 ? ((defectTotal / (freeTotal + specialTotal)) * 100).toFixed(1) : '0';
+  const defectPct = total > 0 ? (((defectTotal + specialTotal) / total) * 100).toFixed(1) : '0';
 
   const submittedIso = inspection.submittedAt || inspection.createdAt;
   const submittedDate = format(new Date(submittedIso), 'MMM d, yyyy');
@@ -142,6 +141,7 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
 
     rows.push([]);
     rows.push([t('Total'), total, '100%']);
+    rows.push([t('TOTAL DEFECTS'), defectTotal + specialTotal, defectPct + '%']);
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
     
@@ -272,7 +272,7 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
                 </tr>
                 <tr>
                   <td className="py-2 font-black text-red-600 text-sm">{t('TOTAL DEFECTS')}</td>
-                  <td className="py-2 text-end font-black text-red-600">{defectTotal}</td>
+                  <td className="py-2 text-end font-black text-red-600">{defectTotal + specialTotal}</td>
                   <td className="py-2 text-end font-bold text-red-600">{defectPct}%</td>
                 </tr>
               </tfoot>
