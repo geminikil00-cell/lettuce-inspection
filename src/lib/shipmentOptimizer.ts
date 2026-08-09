@@ -10,6 +10,11 @@ export interface StockWithScores {
   daysStored: number;
 }
 
+export interface PlacedItem {
+  scored: StockWithScores;
+  pallets: number;
+}
+
 export interface OptimizationParams {
   selectedParams: string[];
   storageTimeDays: number;
@@ -19,7 +24,7 @@ export interface OptimizationParams {
 }
 
 export interface ShipmentPlan {
-  items: StockWithScores[];
+  items: PlacedItem[];
   totalPallets: number;
   paramAverages: Record<string, number>;
 }
@@ -29,49 +34,14 @@ export interface OptimizationResult {
   overflow: StockWithScores[];
 }
 
-function computeAvg(items: StockWithScores[], paramId: string): number {
+function computeAvg(items: PlacedItem[], paramId: string): number {
   if (items.length === 0) return 0;
-  const totalPallets = items.reduce((sum, s) => sum + s.stock.pallets, 0);
+  const totalPallets = items.reduce((sum, item) => sum + item.pallets, 0);
   if (totalPallets === 0) return 0;
   if (paramId === '__quality__') {
-    return items.reduce((sum, s) => sum + s.goodPct * s.stock.pallets, 0) / totalPallets;
+    return items.reduce((sum, item) => sum + item.scored.goodPct * item.pallets, 0) / totalPallets;
   }
-  return items.reduce((sum, s) => sum + (s.defectPcts[paramId] || 0) * s.stock.pallets, 0) / totalPallets;
-}
-
-function computeBalanceScore(
-  shipments: { items: StockWithScores[]; totalPallets: number }[],
-  candidate: StockWithScores,
-  shipIdx: number,
-  selectedParams: string[],
-  palletsPerShipment: number,
-): number {
-  const sim = shipments.map((s) => ({ items: [...s.items], totalPallets: s.totalPallets }));
-  sim[shipIdx].items.push(candidate);
-  sim[shipIdx].totalPallets += candidate.stock.pallets;
-
-  const nonEmpty = sim.map((s, i) => i === shipIdx || s.items.length > 0);
-
-  let totalVariance = 0;
-  for (const paramId of selectedParams) {
-    const weightedAvg =
-      sim.reduce((sum, s, i) => nonEmpty[i] ? sum + computeAvg(s.items, paramId) * s.items.length : sum, 0) /
-      Math.max(1, sim.reduce((sum, s, i) => nonEmpty[i] ? sum + s.items.length : sum, 0));
-
-    let varianceSum = 0;
-    let varianceCount = 0;
-    for (let i = 0; i < sim.length; i++) {
-      if (!nonEmpty[i]) continue;
-      const a = computeAvg(sim[i].items, paramId);
-      varianceSum += (a - weightedAvg) ** 2;
-      varianceCount++;
-    }
-    totalVariance += varianceCount > 1 ? varianceSum / varianceCount : 0;
-  }
-
-  const filledRatio = sim[shipIdx].totalPallets / palletsPerShipment;
-  const normalizedVariance = totalVariance / Math.max(1, selectedParams.length);
-  return -normalizedVariance + filledRatio * 50;
+  return items.reduce((sum, item) => sum + (item.scored.defectPcts[paramId] || 0) * item.pallets, 0) / totalPallets;
 }
 
 export function optimizeShipments(
@@ -98,7 +68,7 @@ export function optimizeShipments(
     const defectPcts: Record<string, number> = {};
 
     parameters
-      .filter((p) => p.isDefect && !p.isSpecial)
+      .filter((p) => p.isDefect)
       .forEach((p) => {
         defectPcts[p.id] = 0;
       });
@@ -109,7 +79,7 @@ export function optimizeShipments(
         const goodCount = goodParam ? (inspection.counts[goodParam.id] || 0) : 0;
         goodPct = (goodCount / totalHeads) * 100;
         parameters
-          .filter((p) => p.isDefect && !p.isSpecial)
+          .filter((p) => p.isDefect)
           .forEach((p) => {
             defectPcts[p.id] = ((inspection.counts[p.id] || 0) / totalHeads) * 100;
           });
@@ -139,43 +109,55 @@ export function optimizeShipments(
 
   const sorted = [...overdue, ...fresh];
 
-  const shipments: { items: StockWithScores[]; totalPallets: number }[] = Array.from(
+  const shipments: { items: PlacedItem[]; totalPallets: number; stockIds: Set<string> }[] = Array.from(
     { length: params.numShipments },
-    () => ({ items: [], totalPallets: 0 }),
+    () => ({ items: [], totalPallets: 0, stockIds: new Set() }),
   );
 
   const overflow: StockWithScores[] = [];
 
   for (const stock of sorted) {
-    let bestIdx = -1;
-    let bestScore = -Infinity;
-    let bestPallets = Infinity;
+    let remaining = stock.stock.pallets;
 
-    for (let i = 0; i < shipments.length; i++) {
-      const s = shipments[i];
-      if (s.totalPallets + stock.stock.pallets > params.palletsPerShipment) continue;
-      if (s.items.length >= params.maxStocksPerShipment) continue;
+    while (remaining > 0) {
+      let bestIdx = -1;
+      let bestPallets = Infinity;
+      let bestHasStock = false;
 
-      const score = computeBalanceScore(
-        shipments,
-        stock,
-        i,
-        params.selectedParams,
-        params.palletsPerShipment,
-      );
+      for (let i = 0; i < shipments.length; i++) {
+        const s = shipments[i];
+        const spaceLeft = params.palletsPerShipment - s.totalPallets;
+        if (spaceLeft <= 0) continue;
 
-      if (score > bestScore || (score === bestScore && shipments[i].totalPallets < bestPallets)) {
-        bestScore = score;
-        bestIdx = i;
-        bestPallets = shipments[i].totalPallets;
+        const stockAlreadyThere = s.stockIds.has(stock.stock.id);
+        if (!stockAlreadyThere && s.stockIds.size >= params.maxStocksPerShipment) continue;
+
+        if (s.totalPallets < bestPallets) {
+          bestPallets = s.totalPallets;
+          bestIdx = i;
+          bestHasStock = stockAlreadyThere;
+        } else if (s.totalPallets === bestPallets) {
+          if (stockAlreadyThere && !bestHasStock) {
+            bestPallets = s.totalPallets;
+            bestIdx = i;
+            bestHasStock = true;
+          }
+        }
       }
+
+      if (bestIdx < 0) break;
+
+      const spaceLeft = params.palletsPerShipment - shipments[bestIdx].totalPallets;
+      const toPlace = Math.min(remaining, spaceLeft);
+
+      shipments[bestIdx].items.push({ scored: stock, pallets: toPlace });
+      shipments[bestIdx].totalPallets += toPlace;
+      shipments[bestIdx].stockIds.add(stock.stock.id);
+      remaining -= toPlace;
     }
 
-    if (bestIdx >= 0) {
-      shipments[bestIdx].items.push(stock);
-      shipments[bestIdx].totalPallets += stock.stock.pallets;
-    } else {
-      overflow.push(stock);
+    if (remaining > 0) {
+      overflow.push({ ...stock, stock: { ...stock.stock, pallets: remaining } });
     }
   }
 
@@ -191,7 +173,7 @@ export function optimizeShipments(
 }
 
 function computeParamAverages(
-  items: StockWithScores[],
+  items: PlacedItem[],
   params: OptimizationParams,
 ): Record<string, number> {
   const averages: Record<string, number> = {};

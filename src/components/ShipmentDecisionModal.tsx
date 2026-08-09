@@ -27,7 +27,7 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
 
   if (!open) return null;
 
-  const defectParams = parameters.filter((p) => p.isDefect && !p.isSpecial);
+  const defectParams = parameters.filter((p) => p.isDefect);
 
   const toggleParam = (id: string) => {
     setSelectedParams((prev) => {
@@ -71,11 +71,11 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
     try {
       const plan = result.shipments[planIdx];
       const items = plan.items.map((item) => ({
-        stockId: item.stock.id,
-        farmName: item.stock.farmName,
-        plotName: item.stock.plotName,
-        receivingDate: item.stock.receivingDate,
-        pallets: item.stock.pallets,
+        stockId: item.scored.stock.id,
+        farmName: item.scored.stock.farmName,
+        plotName: item.scored.stock.plotName,
+        receivingDate: item.scored.stock.receivingDate,
+        pallets: item.pallets,
       }));
       await addShipment(`Shipment #${planIdx + 1}`, items);
       const newShipments = result.shipments.filter((_, i) => i !== planIdx);
@@ -95,11 +95,11 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
       for (let i = 0; i < result.shipments.length; i++) {
         const plan = result.shipments[i];
         const items = plan.items.map((item) => ({
-          stockId: item.stock.id,
-          farmName: item.stock.farmName,
-          plotName: item.stock.plotName,
-          receivingDate: item.stock.receivingDate,
-          pallets: item.stock.pallets,
+          stockId: item.scored.stock.id,
+          farmName: item.scored.stock.farmName,
+          plotName: item.scored.stock.plotName,
+          receivingDate: item.scored.stock.receivingDate,
+          pallets: item.pallets,
         }));
         await addShipment(`Shipment #${i + 1}`, items);
       }
@@ -160,12 +160,12 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
       s.items.forEach((item) => {
         rows.push([
           `#${i + 1}`,
-          item.stock.farmName,
-          item.stock.plotName || '-',
-          item.stock.receivingDate,
-          item.stock.pallets,
+          item.scored.stock.farmName,
+          item.scored.stock.plotName || '-',
+          item.scored.stock.receivingDate,
+          item.pallets,
           ...Object.keys(s.paramAverages).map((pid) =>
-            pid === '__quality__' ? item.goodPct.toFixed(1) + '%' : ((item.defectPcts[pid] || 0).toFixed(1) + '%')
+            pid === '__quality__' ? item.scored.goodPct.toFixed(1) + '%' : ((item.scored.defectPcts[pid] || 0).toFixed(1) + '%')
           ),
         ]);
       });
@@ -248,6 +248,9 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
                     />
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: p.color }} />
                     <span className="font-bold text-gray-900">{p.name}</span>
+                    {p.isSpecial && (
+                      <span className="text-[10px] font-bold bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">{t('Special')}</span>
+                    )}
                   </label>
                 ))}
               </div>
@@ -307,7 +310,7 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
           ) : (
             <div ref={resultsRef} className="space-y-4">
               <div className="text-sm font-bold text-gray-500 mb-2">
-                {result.shipments.length} {t('shipments')} · {(result.shipments.length || 0) * palletsPerShipment} {t('Pallets')} max
+                {result.shipments.length} {t('shipments')} · {result.shipments.reduce((sum, s) => sum + s.totalPallets, 0)} {t('Pallets')} total
                 {result.overflow.length > 0 && (
                   <span className="text-orange-500 ml-2">· {result.overflow.length} overflow</span>
                 )}
@@ -328,21 +331,21 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
                     {s.items.map((item, j) => (
                       <div key={j} className="flex items-center justify-between text-sm py-1 border-b border-gray-50 last:border-0">
                         <div>
-                          <span className="font-semibold text-gray-900">{item.stock.farmName}</span>
-                          {item.stock.plotName && <span className="text-gray-400 ml-1">({item.stock.plotName})</span>}
-                          <span className="text-gray-400 ml-2 text-xs">{item.stock.receivingDate}</span>
-                          {item.daysStored >= storageTimeDays && (
+                          <span className="font-semibold text-gray-900">{item.scored.stock.farmName}</span>
+                          {item.scored.stock.plotName && <span className="text-gray-400 ml-1">({item.scored.stock.plotName})</span>}
+                          <span className="text-gray-400 ml-2 text-xs">{item.scored.stock.receivingDate}</span>
+                          {item.scored.daysStored >= storageTimeDays && (
                             <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 py-0.5 rounded ml-1">
-                              {item.daysStored}d
+                              {item.scored.daysStored}d
                             </span>
                           )}
-                          {!item.hasInspection && (
+                          {!item.scored.hasInspection && (
                             <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-1 py-0.5 rounded ml-1">
                               {t('Not inspected')}
                             </span>
                           )}
                         </div>
-                        <span className="font-bold text-gray-900">{item.stock.pallets}</span>
+                        <span className="font-bold text-gray-900">{item.pallets}</span>
                       </div>
                     ))}
                   </div>
