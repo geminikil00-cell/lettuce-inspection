@@ -275,7 +275,8 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
           </button>
         </div>
 
-        <div className="p-4 overflow-y-auto flex-1" ref={containerRef}>
+        <div className="p-4 overflow-y-auto flex-1">
+          <div ref={containerRef}>
           {items.length > 0 && avgDefects.length > 0 && !editing && (
             <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100">
               <div className="text-xs font-bold text-red-600 uppercase tracking-wider mb-2">
@@ -367,6 +368,7 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
               )}
             </div>
           )}
+          </div>
         </div>
 
         <div className="px-6 py-4 border-t border-gray-100 shrink-0 flex flex-col gap-2">
