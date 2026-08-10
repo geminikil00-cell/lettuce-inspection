@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: Props) {
-  const { shipments, updateShipmentItems, deleteShipment, refresh } = useSupabase();
+  const { shipments, inspections, parameters, updateShipmentItems, deleteShipment, refresh } = useSupabase();
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [items, setItems] = useState<{ stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]>([]);
@@ -39,6 +39,46 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
   }, [open, shipment]);
 
   if (!open) return null;
+
+  const defectsByStockId = useMemo(() => {
+    const map: Record<string, { total: number; defects: { name: string; color: string; pct: number }[] } | null> = {};
+    const defectParams = parameters.filter(p => p.isDefect && !p.isSpecial);
+    inspections.forEach(i => {
+      if (i.stockId) {
+        const t = Object.values(i.counts).reduce((a, b) => a + b, 0);
+        if (t === 0) { map[i.stockId] = null; return; }
+        map[i.stockId] = {
+          total: t,
+          defects: defectParams.map(p => ({
+            name: p.name,
+            color: p.color,
+            pct: (i.counts[p.id] || 0) / t * 100,
+          })).filter(d => d.pct > 0),
+        };
+      }
+    });
+    return map;
+  }, [inspections, parameters]);
+
+  const avgDefects = useMemo(() => {
+    const defectMap: Record<string, { name: string; color: string; weightedPct: number; totalPallets: number }> = {};
+    items.forEach((item) => {
+      const info = item.stockId ? defectsByStockId[item.stockId] : null;
+      if (!info) return;
+      info.defects.forEach((d) => {
+        if (!defectMap[d.name]) {
+          defectMap[d.name] = { name: d.name, color: d.color, weightedPct: 0, totalPallets: 0 };
+        }
+        defectMap[d.name].weightedPct += d.pct * item.pallets;
+        defectMap[d.name].totalPallets += item.pallets;
+      });
+    });
+    return Object.values(defectMap).map((d) => ({
+      name: d.name,
+      color: d.color,
+      pct: d.totalPallets > 0 ? d.weightedPct / d.totalPallets : 0,
+    }));
+  }, [items, defectsByStockId]);
 
   const dispatchedMap: Record<string, number> = {};
   shipments.forEach((s) => {
@@ -211,6 +251,24 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
         </div>
 
         <div className="p-4 overflow-y-auto flex-1">
+          {items.length > 0 && avgDefects.length > 0 && !editing && (
+            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100">
+              <div className="text-xs font-bold text-red-600 uppercase tracking-wider mb-2">
+                {t('Weighted Avg Defects')}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {avgDefects.map((d) => (
+                  <span
+                    key={d.name}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-full text-white"
+                    style={{ backgroundColor: d.color }}
+                  >
+                    {d.name} {d.pct.toFixed(1)}%
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           {items.length === 0 && !editing ? (
             <div className="text-center py-12 text-gray-500 font-medium">
               {t('No available stock for this day')}
