@@ -193,14 +193,24 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
 
   const exportJpg = async () => {
     if (!containerRef.current) return;
-    const dataUrl = await toJpeg(containerRef.current, {
-      quality: 0.95,
-      backgroundColor: '#ffffff'
-    });
-    const link = document.createElement('a');
-    link.download = `Shipment_${editName.replace(/\s+/g, '_')}_${format(dt, 'yyyy-MM-dd')}.jpg`;
-    link.href = dataUrl;
-    link.click();
+    const el = containerRef.current;
+    const prevOverflow = el.style.overflow;
+    const prevMaxHeight = el.style.maxHeight;
+    el.style.overflow = 'visible';
+    el.style.maxHeight = 'none';
+    try {
+      const dataUrl = await toJpeg(el, {
+        quality: 0.95,
+        backgroundColor: '#ffffff'
+      });
+      const link = document.createElement('a');
+      link.download = `Shipment_${editName.replace(/\s+/g, '_')}_${format(dt, 'yyyy-MM-dd')}.jpg`;
+      link.href = dataUrl;
+      link.click();
+    } finally {
+      el.style.overflow = prevOverflow;
+      el.style.maxHeight = prevMaxHeight;
+    }
   };
 
   return (
