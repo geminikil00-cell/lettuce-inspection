@@ -62,6 +62,27 @@ export function DispatchModal({ stockEntries, open, onClose }: Props) {
 
   const totalSelected = selectedEntries.reduce((sum, e) => sum + selections[e.id], 0);
 
+  const avgDefects = useMemo(() => {
+    const defectMap: Record<string, { name: string; color: string; weightedPct: number; totalPallets: number }> = {};
+    selectedEntries.forEach((entry) => {
+      const qty = selections[entry.id];
+      const info = defectsByStockId[entry.id];
+      if (!info) return;
+      info.defects.forEach((d) => {
+        if (!defectMap[d.name]) {
+          defectMap[d.name] = { name: d.name, color: d.color, weightedPct: 0, totalPallets: 0 };
+        }
+        defectMap[d.name].weightedPct += d.pct * qty;
+        defectMap[d.name].totalPallets += qty;
+      });
+    });
+    return Object.values(defectMap).map((d) => ({
+      name: d.name,
+      color: d.color,
+      pct: d.totalPallets > 0 ? d.weightedPct / d.totalPallets : 0,
+    }));
+  }, [selectedEntries, selections, defectsByStockId]);
+
   const handleToggle = (id: string) => {
     setSelections((prev) => {
       const next = { ...prev };
@@ -140,6 +161,24 @@ export function DispatchModal({ stockEntries, open, onClose }: Props) {
               className="w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all"
             />
           </div>
+          {totalSelected > 0 && avgDefects.length > 0 && (
+            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100">
+              <div className="text-xs font-bold text-red-600 uppercase tracking-wider mb-2">
+                {t('Weighted Avg Defects')}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {avgDefects.map((d) => (
+                  <span
+                    key={d.name}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-full text-white"
+                    style={{ backgroundColor: d.color }}
+                  >
+                    {d.name} {d.pct.toFixed(1)}%
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           {availableStock.length === 0 ? (
             <div className="text-center py-12 text-gray-500 font-medium">
               {t('No available stock for this day')}
