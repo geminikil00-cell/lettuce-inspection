@@ -215,57 +215,56 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="bg-white w-full max-w-lg sm:rounded-[32px] rounded-t-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-white w-full max-w-lg sm:rounded-[32px] rounded-t-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] relative"
       >
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-          <div className="flex-1 min-w-0">
-            {showNameInput ? (
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                onBlur={async () => {
-                  setShowNameInput(false);
-                  if (editName !== (shipment.name || '')) {
-                    await supabase.from('shipments').update({ name: editName }).eq('id', shipment.id);
-                    await refresh();
-                  }
-                }}
-                onKeyDown={async (e) => {
-                  if (e.key === 'Enter') {
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        <div className="flex-1 overflow-y-auto" ref={containerRef}>
+          <div className="px-6 py-4 border-b border-gray-100">
+            <div className="flex-1 min-w-0 pr-8">
+              {showNameInput ? (
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onBlur={async () => {
                     setShowNameInput(false);
                     if (editName !== (shipment.name || '')) {
                       await supabase.from('shipments').update({ name: editName }).eq('id', shipment.id);
                       await refresh();
                     }
-                  }
-                }}
-                autoFocus
-                className="w-full text-xl font-bold text-gray-900 tracking-tight bg-transparent border-b-2 border-green-500 outline-none"
-                placeholder={t('Shipment name')}
-              />
-            ) : (
-              <h2
-                className="text-xl font-bold text-gray-900 tracking-tight cursor-pointer hover:text-green-700"
-                onClick={() => setShowNameInput(true)}
-              >
-                {editName || t('Shipment Detail')}
-              </h2>
-            )}
-            <p className="text-sm text-gray-500">
-              {format(dt, 'MMM d, yyyy')} &mdash; {format(dt, 'h:mm a')}
-            </p>
+                  }}
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter') {
+                      setShowNameInput(false);
+                      if (editName !== (shipment.name || '')) {
+                        await supabase.from('shipments').update({ name: editName }).eq('id', shipment.id);
+                        await refresh();
+                      }
+                    }
+                  }}
+                  autoFocus
+                  className="w-full text-xl font-bold text-gray-900 tracking-tight bg-transparent border-b-2 border-green-500 outline-none"
+                  placeholder={t('Shipment name')}
+                />
+              ) : (
+                <h2
+                  className="text-xl font-bold text-gray-900 tracking-tight cursor-pointer hover:text-green-700"
+                  onClick={() => setShowNameInput(true)}
+                >
+                  {editName || t('Shipment Detail')}
+                </h2>
+              )}
+              <p className="text-sm text-gray-500">
+                {format(dt, 'MMM d, yyyy')} &mdash; {format(dt, 'h:mm a')}
+              </p>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-4 overflow-y-auto flex-1">
-          <div ref={containerRef}>
+          <div className="p-4">
           {items.length > 0 && avgDefects.length > 0 && !editing && (
             <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100">
               <div className="text-xs font-bold text-red-600 uppercase tracking-wider mb-2">
