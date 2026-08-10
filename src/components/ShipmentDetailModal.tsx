@@ -197,21 +197,10 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
       quality: 0.95,
       backgroundColor: '#ffffff'
     });
-    const filename = `Shipment_${editName.replace(/\s+/g, '_')}_${format(dt, 'yyyy-MM-dd')}.jpg`;
-    const res = await fetch(dataUrl);
-    const blob = await res.blob();
-    const file = new File([blob], filename, { type: 'image/jpeg' });
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file] });
-        return;
-      } catch {}
-    }
     const link = document.createElement('a');
-    link.download = filename;
-    link.href = URL.createObjectURL(blob);
+    link.download = `Shipment_${editName.replace(/\s+/g, '_')}_${format(dt, 'yyyy-MM-dd')}.jpg`;
+    link.href = dataUrl;
     link.click();
-    URL.revokeObjectURL(link.href);
   };
 
   return (
