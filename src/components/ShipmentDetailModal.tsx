@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { toJpeg } from 'html-to-image';
 import { useSupabase } from '../hooks/useSupabase';
 import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
-import { X, Plus, Minus } from 'lucide-react';
+import { X, Plus, Minus, Image as ImageIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import type { Shipment, StockEntry } from '../types';
@@ -17,6 +18,7 @@ interface Props {
 export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: Props) {
   const { shipments, inspections, parameters, updateShipmentItems, deleteShipment, refresh } = useSupabase();
   const { t } = useTranslation();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
   const [items, setItems] = useState<{ stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -189,6 +191,29 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
 
   const dt = new Date(shipment.dispatchedAt);
 
+  const exportJpg = async () => {
+    if (!containerRef.current) return;
+    const dataUrl = await toJpeg(containerRef.current, {
+      quality: 0.95,
+      backgroundColor: '#ffffff'
+    });
+    const filename = `Shipment_${editName.replace(/\s+/g, '_')}_${format(dt, 'yyyy-MM-dd')}.jpg`;
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], filename, { type: 'image/jpeg' });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        return;
+      } catch {}
+    }
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -250,7 +275,7 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
           </button>
         </div>
 
-        <div className="p-4 overflow-y-auto flex-1">
+        <div className="p-4 overflow-y-auto flex-1" ref={containerRef}>
           {items.length > 0 && avgDefects.length > 0 && !editing && (
             <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100">
               <div className="text-xs font-bold text-red-600 uppercase tracking-wider mb-2">
@@ -378,17 +403,26 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
             ) : (
               <>
                 <button
-                  onClick={handleDelete}
-                  className="flex-1 py-3 bg-red-50 text-red-700 font-bold rounded-2xl hover:bg-red-100 transition-colors"
+                  onClick={exportJpg}
+                  className="flex-1 py-3 bg-blue-50 text-blue-700 font-bold rounded-2xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
                 >
-                  {t('Remove')}
+                  <ImageIcon className="w-4 h-4" />
+                  {t('Save JPG')}
                 </button>
-                <button
-                  onClick={() => setEditing(true)}
-                  className="flex-1 py-3 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 transition-colors"
-                >
-                  {t('Edit Dispatch')}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleDelete}
+                    className="flex-1 py-3 bg-red-50 text-red-700 font-bold rounded-2xl hover:bg-red-100 transition-colors"
+                  >
+                    {t('Remove')}
+                  </button>
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="flex-1 py-3 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 transition-colors"
+                  >
+                    {t('Edit Dispatch')}
+                  </button>
+                </div>
               </>
             )}
           </div>
