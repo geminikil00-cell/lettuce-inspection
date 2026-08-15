@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Truck, Package, Edit2, Clock, FileSpreadsheet, Image as ImageIcon, Search, X, Link2, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { format, isToday, isYesterday } from 'date-fns';
+import { countHeads } from '../lib/utils';
 import type { StockEntry, Shipment, Inspection } from '../types';
 
 interface EnrichedStock extends StockEntry {
@@ -54,7 +55,7 @@ export function StockPage() {
   const [linkingStockId, setLinkingStockId] = useState<string | null>(null);
 
   // Column visibility
-  const defectParams = useMemo(() => parameters.filter(p => p.isDefect), [parameters]);
+  const defectParams = useMemo(() => parameters.filter(p => p.isDefect || p.isSpecial), [parameters]);
   const [visibleParams, setVisibleParams] = useState<Set<string>>(() =>
     new Set(defectParams.map(p => p.id))
   );
@@ -72,7 +73,7 @@ export function StockPage() {
   };
 
   const visibleParamsList = useMemo(
-    () => parameters.filter(p => p.isDefect && !p.isSpecial && visibleParams.has(p.id)),
+    () => parameters.filter(p => (p.isDefect || p.isSpecial) && visibleParams.has(p.id)),
     [parameters, visibleParams]
   );
 
@@ -459,7 +460,7 @@ export function StockPage() {
                             </td>
                             {visibleParamsList.map((p) => {
                               const count = linkedInspection ? (linkedInspection.counts[p.id] || 0) : null;
-                              const total = linkedInspection ? Object.values(linkedInspection.counts).reduce((a, b) => a + b, 0) : 0;
+                              const total = linkedInspection ? countHeads(linkedInspection.counts, parameters) : 0;
                               const display = count !== null
                                 ? (showPercentages && total > 0 ? `${((count / total) * 100).toFixed(1)}%` : String(count))
                                 : null;
@@ -639,7 +640,7 @@ export function StockPage() {
                 ) : (
                   <div className="space-y-2">
                     {unlinkedInspections.map((insp) => {
-                      const total = Object.values(insp.counts).reduce((a, b) => a + b, 0);
+                      const total = countHeads(insp.counts, parameters);
                       return (
                         <button
                           key={insp.id}

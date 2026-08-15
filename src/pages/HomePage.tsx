@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { InspectionFormModal } from '../components/InspectionFormModal';
 import { ReportTable } from '../components/ReportTable';
 import { useSupabase } from '../hooks/useSupabase';
+import { countHeads } from '../lib/utils';
 import type { Inspection } from '../types';
 import { Plus, ChevronRight, Sprout, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -156,10 +157,7 @@ export function HomePage() {
             <div className="space-y-4">
               <AnimatePresence>
                 {filteredInspections.map((inspection, idx) => {
-                  const total = Object.values(inspection.counts).reduce(
-                    (a, b) => a + b,
-                    0,
-                  );
+                  const total = countHeads(inspection.counts, parameters);
                   const iso = inspection.submittedAt || inspection.createdAt;
 
                   return (
@@ -204,7 +202,7 @@ export function HomePage() {
                       {total > 0 && (
                         <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden flex">
                           {Object.entries(inspection.counts)
-                            .filter(([, c]) => c > 0)
+                            .filter(([pid, c]) => c > 0 && !paramMap.get(pid)?.isSpecial)
                             .sort(([, a], [, b]) => b - a)
                             .map(([pid, count]) => {
                               const p = paramMap.get(pid);

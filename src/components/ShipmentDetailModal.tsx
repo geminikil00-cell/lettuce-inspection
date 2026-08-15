@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { toJpeg } from 'html-to-image';
 import { useSupabase } from '../hooks/useSupabase';
 import { supabase } from '../lib/supabase';
+import { countHeads } from '../lib/utils';
 import { motion } from 'framer-motion';
 import { X, Plus, Minus, Image as ImageIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -47,7 +48,7 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
     const defectParams = parameters.filter(p => p.isDefect && !p.isSpecial);
     inspections.forEach(i => {
       if (i.stockId) {
-        const t = Object.values(i.counts).reduce((a, b) => a + b, 0);
+        const t = countHeads(i.counts, parameters);
         if (t === 0) { map[i.stockId] = null; return; }
         map[i.stockId] = {
           total: t,

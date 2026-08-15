@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
+import { countHeads } from '../lib/utils';
 import { motion } from 'framer-motion';
 import { X, Plus, Minus, Truck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -38,7 +39,7 @@ export function DispatchModal({ stockEntries, open, onClose }: Props) {
     const defectParams = parameters.filter(p => p.isDefect && !p.isSpecial);
     inspections.forEach(i => {
       if (i.stockId) {
-        const t = Object.values(i.counts).reduce((a, b) => a + b, 0);
+        const t = countHeads(i.counts, parameters);
         if (t === 0) { map[i.stockId] = null; return; }
         map[i.stockId] = {
           total: t,

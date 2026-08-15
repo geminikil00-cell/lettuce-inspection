@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSupabase } from '../hooks/useSupabase';
+import { countHeads } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, ChevronLeft, Minus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -71,7 +72,7 @@ export function InspectionPage() {
     );
   }
 
-  const total = Object.values(localCounts).reduce((a, b) => a + b, 0);
+  const total = countHeads(localCounts, parameters);
 
   const handleTap = (paramId: string) => {
     triggerHaptic();

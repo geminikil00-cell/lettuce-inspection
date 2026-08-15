@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { subDays, subMonths, isAfter, parseISO, format } from 'date-fns';
 import { TrendingUp, AlertTriangle, Sprout, Image as ImageIcon } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, countHeads } from '../lib/utils';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
@@ -51,7 +51,7 @@ export function ChartsPage() {
       );
 
     return filtered.map((ins) => {
-      const total = Object.values(ins.counts).reduce((a, b) => a + b, 0);
+      const total = countHeads(ins.counts, parameters);
       const point: Record<string, any> = {
         date: ins.receivingDate,
         label: format(new Date(ins.receivingDate), 'MMM d'),

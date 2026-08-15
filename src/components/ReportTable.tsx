@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { toJpeg } from 'html-to-image';
 import type { Inspection, Parameter } from '../types';
 import { useSupabase } from '../hooks/useSupabase';
+import { countHeads } from '../lib/utils';
 import { motion } from 'framer-motion';
 import { X, FileSpreadsheet, Image as ImageIcon, Edit2, Trash2, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -68,7 +69,7 @@ export function ReportTable({ inspection, parameters, onClose, onEditInfo }: Pro
   };
 
   const paramMap = new Map(parameters.map((p) => [p.id, p]));
-  const total = Object.values(inspection.counts).reduce((a, b) => a + b, 0);
+  const total = countHeads(inspection.counts, parameters);
 
   const specialTotal = Object.entries(inspection.counts)
     .filter(([pid]) => paramMap.get(pid)?.isSpecial)
