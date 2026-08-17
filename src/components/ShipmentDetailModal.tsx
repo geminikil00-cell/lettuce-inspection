@@ -64,22 +64,22 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
   }, [inspections, parameters]);
 
   const avgDefects = useMemo(() => {
-    const defectMap: Record<string, { name: string; color: string; weightedPct: number; totalPallets: number }> = {};
+    const defectMap: Record<string, { name: string; color: string; weightedPct: number }> = {};
+    const totalPallets = items.reduce((sum, item) => sum + item.pallets, 0);
     items.forEach((item) => {
       const info = item.stockId ? defectsByStockId[item.stockId] : null;
       if (!info) return;
       info.defects.forEach((d) => {
         if (!defectMap[d.name]) {
-          defectMap[d.name] = { name: d.name, color: d.color, weightedPct: 0, totalPallets: 0 };
+          defectMap[d.name] = { name: d.name, color: d.color, weightedPct: 0 };
         }
         defectMap[d.name].weightedPct += d.pct * item.pallets;
-        defectMap[d.name].totalPallets += item.pallets;
       });
     });
     return Object.values(defectMap).map((d) => ({
       name: d.name,
       color: d.color,
-      pct: d.totalPallets > 0 ? d.weightedPct / d.totalPallets : 0,
+      pct: totalPallets > 0 ? d.weightedPct / totalPallets : 0,
     }));
   }, [items, defectsByStockId]);
 

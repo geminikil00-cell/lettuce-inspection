@@ -64,25 +64,24 @@ export function DispatchModal({ stockEntries, open, onClose }: Props) {
   const totalSelected = selectedEntries.reduce((sum, e) => sum + selections[e.id], 0);
 
   const avgDefects = useMemo(() => {
-    const defectMap: Record<string, { name: string; color: string; weightedPct: number; totalPallets: number }> = {};
+    const defectMap: Record<string, { name: string; color: string; weightedPct: number }> = {};
     selectedEntries.forEach((entry) => {
       const qty = selections[entry.id];
       const info = defectsByStockId[entry.id];
       if (!info) return;
       info.defects.forEach((d) => {
         if (!defectMap[d.name]) {
-          defectMap[d.name] = { name: d.name, color: d.color, weightedPct: 0, totalPallets: 0 };
+          defectMap[d.name] = { name: d.name, color: d.color, weightedPct: 0 };
         }
         defectMap[d.name].weightedPct += d.pct * qty;
-        defectMap[d.name].totalPallets += qty;
       });
     });
     return Object.values(defectMap).map((d) => ({
       name: d.name,
       color: d.color,
-      pct: d.totalPallets > 0 ? d.weightedPct / d.totalPallets : 0,
+      pct: totalSelected > 0 ? d.weightedPct / totalSelected : 0,
     }));
-  }, [selectedEntries, selections, defectsByStockId]);
+  }, [selectedEntries, selections, defectsByStockId, totalSelected]);
 
   const handleToggle = (id: string) => {
     setSelections((prev) => {
