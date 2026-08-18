@@ -4,6 +4,7 @@ import { optimizeShipments, type OptimizationParams, type OptimizationResult } f
 import { motion } from 'framer-motion';
 import { X, ArrowLeft, Image as ImageIcon, FileSpreadsheet, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { PRODUCE_LABELS } from '../types';
 
 interface Props {
   open: boolean;
@@ -76,6 +77,7 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
         plotName: item.scored.stock.plotName,
         receivingDate: item.scored.stock.receivingDate,
         pallets: item.pallets,
+        produceType: item.scored.stock.produceType,
       }));
       await addShipment(`Shipment #${planIdx + 1}`, items);
       const newShipments = result.shipments.filter((_, i) => i !== planIdx);
@@ -100,6 +102,7 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
           plotName: item.scored.stock.plotName,
           receivingDate: item.scored.stock.receivingDate,
           pallets: item.pallets,
+          produceType: item.scored.stock.produceType,
         }));
         await addShipment(`Shipment #${i + 1}`, items);
       }
@@ -334,12 +337,17 @@ export function ShipmentDecisionModal({ open, onClose }: Props) {
                           <span className="font-semibold text-gray-900">{item.scored.stock.farmName}</span>
                           {item.scored.stock.plotName && <span className="text-gray-400 ml-1">({item.scored.stock.plotName})</span>}
                           <span className="text-gray-400 ml-2 text-xs">{item.scored.stock.receivingDate}</span>
+                          {item.scored.stock.produceType !== 'lettuce' && (
+                            <span className="text-[10px] font-bold bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded ml-1">
+                              {t(PRODUCE_LABELS[item.scored.stock.produceType])}
+                            </span>
+                          )}
                           {item.scored.daysStored >= storageTimeDays && (
                             <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 py-0.5 rounded ml-1">
                               {item.scored.daysStored}d
                             </span>
                           )}
-                          {!item.scored.hasInspection && (
+                          {!item.scored.hasInspection && item.scored.stock.produceType === 'lettuce' && (
                             <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-1 py-0.5 rounded ml-1">
                               {t('Not inspected')}
                             </span>

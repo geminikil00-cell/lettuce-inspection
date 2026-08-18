@@ -4,6 +4,7 @@ import { countHeads } from '../lib/utils';
 import { motion } from 'framer-motion';
 import { X, Plus, Minus, Truck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { PRODUCE_LABELS } from '../types';
 import type { StockEntry } from '../types';
 
 interface Props {
@@ -112,6 +113,7 @@ export function DispatchModal({ stockEntries, open, onClose }: Props) {
         plotName: e.plotName,
         receivingDate: e.receivingDate,
         pallets: selections[e.id],
+        produceType: e.produceType,
       }));
       await addShipment(shipmentName.trim(), items);
       setSelections({});
@@ -201,6 +203,11 @@ export function DispatchModal({ stockEntries, open, onClose }: Props) {
                       >
                         <div className="font-bold text-gray-900">
                           {entry.farmName}{entry.plotName ? ` (${entry.plotName})` : ''}
+                          {entry.produceType !== 'lettuce' && (
+                            <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 align-middle">
+                              {t(PRODUCE_LABELS[entry.produceType])}
+                            </span>
+                          )}
                         </div>
                         <div className="text-sm text-gray-500 font-medium">
                           {entry.receivingDate} — {t('Available')}: {entry.available} {t('Pallets')}

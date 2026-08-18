@@ -15,7 +15,7 @@ import type {
   DbInspection,
   DbInspectionCount,
 } from '../lib/supabase';
-import type { Parameter, Inspection, StockEntry, Shipment, ShipmentItem } from '../types';
+import type { Parameter, Inspection, StockEntry, Shipment, ShipmentItem, ProduceType } from '../types';
 
 interface AppState {
   parameters: Parameter[];
@@ -45,17 +45,21 @@ interface SupabaseContextType extends AppState {
   deleteFarmPlot: (farmName: string, plotName: string) => Promise<void>;
   addInspectorName: (name: string) => Promise<void>;
   deleteInspectorName: (name: string) => Promise<void>;
-  addStock: (entry: { farmName: string; plotName: string; receivingDate: string; pallets: number }) => Promise<void>;
-  updateStock: (id: string, data: { farmName: string; plotName: string; receivingDate: string; pallets: number }) => Promise<void>;
+  addStock: (entry: { farmName: string; plotName: string; receivingDate: string; pallets: number; produceType: ProduceType }) => Promise<void>;
+  updateStock: (id: string, data: { farmName: string; plotName: string; receivingDate: string; pallets: number; produceType: ProduceType }) => Promise<void>;
   deleteStock: (id: string) => Promise<void>;
-  addShipment: (name: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => Promise<void>;
+  addShipment: (name: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number; produceType: ProduceType }[]) => Promise<void>;
   deleteShipment: (id: string) => Promise<void>;
-  updateShipmentItems: (shipmentId: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => Promise<void>;
+  updateShipmentItems: (shipmentId: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number; produceType: ProduceType }[]) => Promise<void>;
   linkInspectionToStock: (inspectionId: string, stockId: string) => Promise<void>;
   unlinkInspection: (inspectionId: string) => Promise<void>;
 }
 
 const SupabaseContext = createContext<SupabaseContextType | null>(null);
+
+function toProduceType(value: unknown): ProduceType {
+  return value === 'tomato' || value === 'onion' ? value : 'lettuce';
+}
 
 function mapInspection(db: DbInspection, counts: Record<string, number>): Inspection {
   return {
@@ -159,6 +163,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         plotName: s.plot_name || '',
         receivingDate: s.receiving_date,
         pallets: s.pallets,
+        produceType: toProduceType(s.produce_type),
         createdAt: s.created_at,
       }));
 
@@ -170,6 +175,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         plotName: si.plot_name || '',
         receivingDate: si.receiving_date,
         pallets: si.pallets,
+        produceType: toProduceType(si.produce_type),
         createdAt: si.created_at,
       }));
 
@@ -255,7 +261,8 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
             .select('id')
             .eq('farm_name', inspection.farmName)
             .eq('plot_name', inspection.plotName)
-            .eq('receiving_date', inspection.receivingDate);
+            .eq('receiving_date', inspection.receivingDate)
+            .eq('produce_type', 'lettuce');
           if (matchingStock && matchingStock.length === 1) {
             const { data: linked } = await supabase
               .from('inspections')
@@ -430,16 +437,17 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   );
 
   const addStock = useCallback(
-    async (entry: { farmName: string; plotName: string; receivingDate: string; pallets: number }) => {
+    async (entry: { farmName: string; plotName: string; receivingDate: string; pallets: number; produceType: ProduceType }) => {
       const { data, error } = await supabase.from('stock').insert({
         farm_name: entry.farmName,
         plot_name: entry.plotName,
         receiving_date: entry.receivingDate,
         pallets: entry.pallets,
+        produce_type: entry.produceType,
       }).select('id').single();
       if (error) throw error;
 
-      if (data) {
+      if (data && entry.produceType === 'lettuce') {
         const { data: matching } = await supabase
           .from('inspections')
           .select('id')
@@ -461,7 +469,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   );
 
   const updateStock = useCallback(
-    async (id: string, data: { farmName: string; plotName: string; receivingDate: string; pallets: number }) => {
+    async (id: string, data: { farmName: string; plotName: string; receivingDate: string; pallets: number; produceType: ProduceType }) => {
       const { data: items, error: fetchErr } = await supabase
         .from('shipment_items')
         .select('pallets')
@@ -478,6 +486,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
           plot_name: data.plotName,
           receiving_date: data.receivingDate,
           pallets: data.pallets,
+          produce_type: data.produceType,
         })
         .eq('id', id);
       if (error) throw error;
@@ -505,7 +514,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   );
 
   const addShipment = useCallback(
-    async (name: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => {
+    async (name: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number; produceType: ProduceType }[]) => {
       const stockIds = [...new Set(items.map((i) => i.stockId).filter(Boolean))];
 
       if (stockIds.length > 0) {
@@ -552,6 +561,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         plot_name: item.plotName,
         receiving_date: item.receivingDate,
         pallets: item.pallets,
+        produce_type: item.produceType,
       }));
       const { error: itemsError } = await supabase.from('shipment_items').insert(itemRows);
       if (itemsError) throw itemsError;
@@ -570,7 +580,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   );
 
   const updateShipmentItems = useCallback(
-    async (shipmentId: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]) => {
+    async (shipmentId: string, items: { stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number; produceType: ProduceType }[]) => {
       const { data: existing, error: fetchErr } = await supabase
         .from('shipment_items')
         .select('id, stock_id')
@@ -582,7 +592,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         if (e.stock_id) existingByStockId.set(e.stock_id, e.id);
       });
 
-      const merged = new Map<string, { id?: string; stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }>();
+      const merged = new Map<string, { id?: string; stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number; produceType: ProduceType }>();
       for (const item of items) {
         const key = item.stockId || `__new__${crypto.randomUUID()}`;
         const existingId = item.stockId ? existingByStockId.get(item.stockId) : undefined;
@@ -602,6 +612,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         plot_name: item.plotName,
         receiving_date: item.receivingDate,
         pallets: item.pallets,
+        produce_type: item.produceType,
       }));
 
       const { error: upsertErr } = await supabase.from('shipment_items').upsert(itemRows);

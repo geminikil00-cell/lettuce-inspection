@@ -18,12 +18,23 @@ export interface Inspection {
   counts: Record<string, number>;
 }
 
+export type ProduceType = 'lettuce' | 'tomato' | 'onion';
+
+export const PRODUCE_TYPES: ProduceType[] = ['lettuce', 'tomato', 'onion'];
+
+export const PRODUCE_LABELS: Record<ProduceType, string> = {
+  lettuce: 'Lettuce',
+  tomato: 'Tomato',
+  onion: 'Onion',
+};
+
 export interface StockEntry {
   id: string;
   farmName: string;
   plotName: string;
   receivingDate: string;
   pallets: number;
+  produceType: ProduceType;
   createdAt: string;
 }
 
@@ -43,5 +54,6 @@ export interface ShipmentItem {
   plotName: string;
   receivingDate: string;
   pallets: number;
+  produceType: ProduceType;
   createdAt: string;
 }

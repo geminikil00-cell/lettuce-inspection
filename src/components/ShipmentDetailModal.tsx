@@ -7,7 +7,8 @@ import { motion } from 'framer-motion';
 import { X, Plus, Minus, Image as ImageIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import type { Shipment, StockEntry } from '../types';
+import { PRODUCE_LABELS } from '../types';
+import type { Shipment, StockEntry, ProduceType } from '../types';
 
 interface Props {
   shipment: Shipment;
@@ -21,7 +22,7 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
-  const [items, setItems] = useState<{ stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number }[]>([]);
+  const [items, setItems] = useState<{ stockId?: string; farmName: string; plotName: string; receivingDate: string; pallets: number; produceType: ProduceType }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [editName, setEditName] = useState('');
   const [showNameInput, setShowNameInput] = useState(false);
@@ -34,6 +35,7 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
         plotName: i.plotName,
         receivingDate: i.receivingDate,
         pallets: i.pallets,
+        produceType: i.produceType,
       })));
       setEditName(shipment.name || '');
       setShowNameInput(false);
@@ -149,6 +151,7 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
         plotName: entry.plotName,
         receivingDate: entry.receivingDate,
         pallets: 1,
+        produceType: entry.produceType,
       }]);
     }
   };
@@ -309,6 +312,11 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
                     <div>
                       <div className="font-bold text-gray-900">
                         {item.farmName}{item.plotName ? ` (${item.plotName})` : ''}
+                        {item.produceType !== 'lettuce' && (
+                          <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 align-middle">
+                            {t(PRODUCE_LABELS[item.produceType])}
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm text-gray-500 font-medium">{item.receivingDate}</div>
                     </div>
@@ -356,6 +364,11 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
                         <div>
                           <div className="font-semibold text-gray-900 text-sm">
                             {entry.farmName}{entry.plotName ? ` (${entry.plotName})` : ''}
+                            {entry.produceType !== 'lettuce' && (
+                              <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 align-middle">
+                                {t(PRODUCE_LABELS[entry.produceType])}
+                              </span>
+                            )}
                           </div>
                           <div className="text-xs text-gray-400">{entry.receivingDate} — {getAvailable(entry.id)} pallets avail</div>
                         </div>
@@ -386,6 +399,7 @@ export function ShipmentDetailModal({ shipment, stockEntries, open, onClose }: P
                       plotName: i.plotName,
                       receivingDate: i.receivingDate,
                       pallets: i.pallets,
+                      produceType: i.produceType,
                     })));
                     setEditing(false);
                   }}

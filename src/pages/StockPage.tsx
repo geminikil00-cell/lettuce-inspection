@@ -10,7 +10,8 @@ import { Plus, Trash2, Truck, Package, Edit2, Clock, FileSpreadsheet, Image as I
 import { useTranslation } from 'react-i18next';
 import { format, isToday, isYesterday } from 'date-fns';
 import { countHeads } from '../lib/utils';
-import type { StockEntry, Shipment, Inspection } from '../types';
+import { PRODUCE_TYPES, PRODUCE_LABELS } from '../types';
+import type { StockEntry, Shipment, Inspection, ProduceType } from '../types';
 
 interface EnrichedStock extends StockEntry {
   available: number;
@@ -32,6 +33,7 @@ export function StockPage() {
   const [newPlot, setNewPlot] = useState('');
   const [newDate, setNewDate] = useState(new Date().toISOString().slice(0, 10));
   const [newPallets, setNewPallets] = useState('');
+  const [newProduceType, setNewProduceType] = useState<ProduceType>('lettuce');
 
   // Edit stock state
   const [editingStock, setEditingStock] = useState<StockEntry | null>(null);
@@ -39,6 +41,7 @@ export function StockPage() {
   const [editPlot, setEditPlot] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editPallets, setEditPallets] = useState('');
+  const [editProduceType, setEditProduceType] = useState<ProduceType>('lettuce');
 
   // Dispatch modal
   const [showDispatch, setShowDispatch] = useState(false);
@@ -126,10 +129,12 @@ export function StockPage() {
       plotName: newPlot,
       receivingDate: newDate,
       pallets: parseInt(newPallets, 10),
+      produceType: newProduceType,
     });
     setNewFarm('');
     setNewPlot('');
     setNewPallets('');
+    setNewProduceType('lettuce');
     setShowAddStock(false);
   };
 
@@ -141,6 +146,7 @@ export function StockPage() {
         plotName: editPlot,
         receivingDate: editDate,
         pallets: parseInt(editPallets, 10),
+        produceType: editProduceType,
       });
       setEditingStock(null);
     } catch (err) {
@@ -163,6 +169,7 @@ export function StockPage() {
     setEditPlot(entry.plotName);
     setEditDate(entry.receivingDate);
     setEditPallets(String(entry.pallets));
+    setEditProduceType(entry.produceType);
   };
 
   // Dispatched tab grouping
@@ -341,6 +348,12 @@ export function StockPage() {
                     <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="flex-1 border border-gray-200 bg-gray-50 rounded-xl px-3 py-2.5 text-gray-900 font-medium text-sm focus:outline-none focus:border-green-500" />
                     <input type="number" value={newPallets} onChange={(e) => setNewPallets(e.target.value)} placeholder={t('Pallets')} min="1" className="w-28 border border-gray-200 bg-gray-50 rounded-xl px-3 py-2.5 text-gray-900 font-medium text-sm focus:outline-none focus:border-green-500" />
                   </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 mb-1 block">{t('Produce Type')}</label>
+                    <select value={newProduceType} onChange={(e) => setNewProduceType(e.target.value as ProduceType)} className="appearance-none w-full border border-gray-200 bg-gray-50 rounded-xl px-3 py-2.5 text-gray-900 font-medium text-sm focus:outline-none focus:border-green-500">
+                      {PRODUCE_TYPES.map((type) => (<option key={type} value={type}>{t(PRODUCE_LABELS[type])}</option>))}
+                    </select>
+                  </div>
                   <div className="flex gap-2">
                     <button onClick={() => setShowAddStock(false)} className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors">{t('Cancel')}</button>
                     <button onClick={handleAddStock} disabled={!newFarm || !newDate || !newPallets} className="flex-1 py-2.5 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 disabled:opacity-50 transition-colors">{t('Add')}</button>
@@ -433,6 +446,9 @@ export function StockPage() {
                                   )}
                                   <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-gray-900 font-medium text-sm" />
                                   <input type="number" value={editPallets} onChange={(e) => setEditPallets(e.target.value)} className="w-20 border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-gray-900 font-bold text-sm" />
+                                  <select value={editProduceType} onChange={(e) => setEditProduceType(e.target.value as ProduceType)} className="appearance-none border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-gray-900 font-medium text-sm">
+                                    {PRODUCE_TYPES.map((type) => (<option key={type} value={type}>{t(PRODUCE_LABELS[type])}</option>))}
+                                  </select>
                                   <button onClick={handleUpdateStock} className="px-3 py-1.5 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700">{t('Save Changes')}</button>
                                   <button onClick={() => setEditingStock(null)} className="px-3 py-1.5 bg-gray-100 text-gray-500 rounded-lg font-bold text-sm hover:bg-gray-200">{t('Cancel')}</button>
                                 </div>
@@ -450,6 +466,11 @@ export function StockPage() {
                               >
                                 {entry.farmName}{entry.plotName ? ` (${entry.plotName})` : ''}
                               </button>
+                              {entry.produceType !== 'lettuce' && (
+                                <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 align-middle">
+                                  {t(PRODUCE_LABELS[entry.produceType])}
+                                </span>
+                              )}
                             </td>
                             <td className="py-3 px-3 text-gray-500 font-medium text-xs">{entry.receivingDate}</td>
                             <td className="py-3 px-3 text-end">
@@ -476,7 +497,7 @@ export function StockPage() {
                             })}
                             <td className="py-3 px-2">
                               <div className="flex gap-1 justify-end">
-                                {linkedInspection ? (
+                                {entry.produceType === 'lettuce' && linkedInspection ? (
                                   <>
                                     <button onClick={() => { unlinkInspection(linkedInspection.id); }} className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg" title="Unlink">
                                       <Link2 className="w-4 h-4" />
@@ -485,7 +506,7 @@ export function StockPage() {
                                       <FileSpreadsheet className="w-4 h-4" />
                                     </button>
                                   </>
-                                ) : (
+                                ) : entry.produceType === 'lettuce' ? (
                                   <>
                                     <button onClick={() => { setLinkingStockId(entry.id); setShowLinkInspections(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Link inspection">
                                       <Search className="w-4 h-4" />
@@ -497,7 +518,7 @@ export function StockPage() {
                                       <Plus className="w-4 h-4" />
                                     </button>
                                   </>
-                                )}
+                                ) : null}
                                 <button onClick={() => startEdit(entry)} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg">
                                   <Edit2 className="w-4 h-4" />
                                 </button>

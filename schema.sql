@@ -102,6 +102,7 @@ CREATE TABLE stock (
   plot_name TEXT NOT NULL DEFAULT '',
   receiving_date TEXT NOT NULL,
   pallets INTEGER NOT NULL DEFAULT 0,
+  produce_type TEXT NOT NULL DEFAULT 'lettuce',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -119,6 +120,7 @@ CREATE TABLE shipment_items (
   plot_name TEXT NOT NULL DEFAULT '',
   receiving_date TEXT NOT NULL,
   pallets INTEGER NOT NULL,
+  produce_type TEXT NOT NULL DEFAULT 'lettuce',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -151,3 +153,6 @@ ALTER TABLE inspections ADD COLUMN IF NOT EXISTS stock_id UUID REFERENCES stock(
 
 ALTER TABLE parameters ADD COLUMN IF NOT EXISTS is_defect BOOLEAN DEFAULT true;
 ALTER TABLE parameters ADD COLUMN IF NOT EXISTS is_special BOOLEAN DEFAULT false;
+
+ALTER TABLE stock ADD COLUMN IF NOT EXISTS produce_type TEXT NOT NULL DEFAULT 'lettuce';
+ALTER TABLE shipment_items ADD COLUMN IF NOT EXISTS produce_type TEXT NOT NULL DEFAULT 'lettuce';
