@@ -61,6 +61,28 @@ function toProduceType(value: unknown): ProduceType {
   return value === 'tomato' || value === 'onion' ? value : 'lettuce';
 }
 
+// PostgREST caps results at 1000 rows per request by default. Fetch all pages
+// so large tables (inspection counts, etc.) are not silently truncated.
+async function fetchAllRows(
+  table: string,
+  order?: { column: string; ascending?: boolean },
+): Promise<{ data: any[] | null; error: any }> {
+  const rows: any[] = [];
+  const pageSize = 1000;
+  let from = 0;
+  for (;;) {
+    let query = supabase.from(table).select('*');
+    if (order) query = query.order(order.column, { ascending: order.ascending ?? true });
+    const { data, error } = await query.range(from, from + pageSize - 1);
+    if (error) return { data: null, error };
+    if (!data || data.length === 0) break;
+    rows.push(...data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return { data: rows, error: null };
+}
+
 function mapInspection(db: DbInspection, counts: Record<string, number>): Inspection {
   return {
     id: db.id,
@@ -106,14 +128,11 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         supabase.from('farm_names').select('*').order('name'),
         supabase.from('farm_plots').select('*').order('created_at'),
         supabase.from('inspector_names').select('*').order('name'),
-        supabase
-          .from('inspections')
-          .select('*')
-          .order('created_at', { ascending: false }),
-        supabase.from('inspection_counts').select('*'),
+        fetchAllRows('inspections', { column: 'created_at', ascending: false }),
+        fetchAllRows('inspection_counts', { column: 'inspection_id' }),
         supabase.from('stock').select('*').order('created_at'),
         supabase.from('shipments').select('*').order('created_at', { ascending: false }),
-        supabase.from('shipment_items').select('*'),
+        fetchAllRows('shipment_items', { column: 'shipment_id' }),
       ]);
 
       if (paramsRes.error) throw paramsRes.error;
